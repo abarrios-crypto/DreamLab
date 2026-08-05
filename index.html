@@ -461,7 +461,7 @@
   <!-- PANTALLA DE CARGA INICIAL -->
   <div id="loaderScreen">
     <div class="loader-spinner">🌟</div>
-    <h2>Cargando universo desde Google Sheets...</h2>
+    <h2>Cargando universo DreamLab...</h2>
   </div>
 
   <div class="sky-decor" aria-hidden="true">
@@ -812,7 +812,7 @@ function checkBiometricSupport() {
     
     // Guardar directamente la respuesta ya organizada por el Script
     worldsData = await response.json();
-    console.log("📊 DATOS RECIBIDOS DESDE GOOGLE SHEETS:", worldsData);
+    console.log("📊 DATOS RECIBIDOS:", worldsData);
     
     if (!worldsData || Object.keys(worldsData).length === 0) {
       throw new Error("El JSON devuelto está vacío o no se encontraron mundos.");
