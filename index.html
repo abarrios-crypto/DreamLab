@@ -961,6 +961,34 @@ function requestTeacherAccess() {
     }
   }
 
+async function saveProgressToSheets(missionKey) {
+    // 1. Recuperamos el ID o nombre del estudiante que ya tienes en el sistema
+    const currentStudent = localStorage.getItem('studentName') || 'usuario_desconocido'; 
+    
+    // 2. Preparamos el paquete de datos exacto que pide tu hoja "ProgresoAlumnos"
+    const payload = {
+      action: 'saveProgress',
+      usuario_id: currentStudent,
+      mission_key: missionKey,
+      completado: true
+    };
+
+    try {
+      // 3. Enviamos los datos a la misma URL que ya usas para descargar los mundos
+      // NOTA: Asegúrate de reemplazar 'URL_DE_TU_SCRIPT' por tu enlace real de Google Apps Script
+      await fetch('URL_DE_TU_SCRIPT', {
+        method: 'POST',
+        mode: 'no-cors', // Esto evita bloqueos de seguridad de Google
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      console.log("☁️✅ Progreso guardado en Google Sheets:", missionKey);
+    } catch (error) {
+      console.error("☁️❌ Error al guardar en la nube:", error);
+    }
+  }
   // ============================================================
   // CARGA DE DATOS DESDE GOOGLE SHEETS
   // ============================================================
@@ -1206,14 +1234,18 @@ function requestTeacherAccess() {
     });
   }
 
-  function completeMission(missionKey, missionTitle, link, alreadyDone){
+function completeMission(missionKey, missionTitle, link, alreadyDone){
     if (alreadyDone){
       if (link && link !== '#') window.open(link, '_blank');
       return;
     }
-    state.missionsDone[missionKey] = true;
-    state.points += 10;
     
+    state.missionsDone[missionKey] = true;
+    state.points += 1; // Cambiado a 1
+
+    // 👇 AQUÍ ENVIAMOS EL PROGRESO A GOOGLE SHEETS 👇
+    saveProgressToSheets(missionKey);
+
     const ptsVal = document.getElementById('pointsValue');
     if (ptsVal) ptsVal.textContent = state.points;
     state.pendingLink = link;
@@ -1222,7 +1254,7 @@ function requestTeacherAccess() {
     if (rName) rName.textContent = `"${missionTitle}" completada.`;
     
     const rPts = document.getElementById('rewardPoints');
-    if (rPts) rPts.textContent = '+10 puntos';
+    if (rPts) rPts.textContent = '+1 estrella'; // Texto actualizado
 
     const rModal = document.getElementById('rewardModal');
     if (rModal) rModal.classList.add('open');
