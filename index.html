@@ -1235,34 +1235,50 @@ async function saveProgressToSheets(missionKey) {
   }
 
 function completeMission(missionKey, missionTitle, link, alreadyDone){
+    // Si la misión ya estaba completada, solo abrimos el enlace y no damos más estrellas
     if (alreadyDone){
       if (link && link !== '#') window.open(link, '_blank');
       return;
     }
     
-    state.missionsDone[missionKey] = true;
-    state.points += 1; // Cambiado a 1
+    // 1. ABRIR EL RECURSO INMEDIATAMENTE
+    if (link && link !== '#') {
+      window.open(link, '_blank');
+    }
 
-    // 👇 AQUÍ ENVIAMOS EL PROGRESO A GOOGLE SHEETS 👇
-    saveProgressToSheets(missionKey);
+    // 2. CONFIRMAR COMPLETAR LA ACTIVIDAD (Pequeña pausa para que abra la pestaña)
+    setTimeout(() => {
+      let confirmar = confirm(`Se ha abierto el recurso en otra pestaña.\n\n¿Ya leíste/completaste la actividad "${missionTitle}"?\n\nDa clic en "Aceptar" para recibir tu estrella y guardar tu progreso, o "Cancelar" si aún no terminas.`);
+      
+      if (confirmar) {
+        // Guardamos el progreso local
+        state.missionsDone[missionKey] = true;
+        state.points += 1;
 
-    const ptsVal = document.getElementById('pointsValue');
-    if (ptsVal) ptsVal.textContent = state.points;
-    state.pendingLink = link;
+        // 👇 ENVIAMOS EL PROGRESO A GOOGLE SHEETS 👇
+        saveProgressToSheets(missionKey);
 
-    const rName = document.getElementById('rewardMissionName');
-    if (rName) rName.textContent = `"${missionTitle}" completada.`;
-    
-    const rPts = document.getElementById('rewardPoints');
-    if (rPts) rPts.textContent = '+1 estrella'; // Texto actualizado
+        // Actualizamos los puntos visuales
+        const ptsVal = document.getElementById('pointsValue');
+        if (ptsVal) ptsVal.textContent = state.points;
 
-    const rModal = document.getElementById('rewardModal');
-    if (rModal) rModal.classList.add('open');
+        // Mostramos el modal de recompensa
+        const rName = document.getElementById('rewardMissionName');
+        if (rName) rName.textContent = `"${missionTitle}" completada.`;
+        
+        const rPts = document.getElementById('rewardPoints');
+        if (rPts) rPts.textContent = '+1 estrella';
 
-    const [worldKey, unitId] = missionKey.split('-');
-    const currentTitle = document.getElementById('islandTitleDisplay')?.textContent || '';
-    renderIsland(worldKey, unitId, currentTitle, state.currentIslandIndex - 1);
-    updateWorldProgressUI();
+        const rModal = document.getElementById('rewardModal');
+        if (rModal) rModal.classList.add('open');
+
+        // Renderizamos la isla para que cambie a verde
+        const [worldKey, unitId] = missionKey.split('-');
+        const currentTitle = document.getElementById('islandTitleDisplay')?.textContent || '';
+        renderIsland(worldKey, unitId, currentTitle, state.currentIslandIndex - 1);
+        updateWorldProgressUI();
+      }
+    }, 500); // Medio segundo de espera
   }
 
   const rewardBtn = document.getElementById('rewardContinueBtn');
