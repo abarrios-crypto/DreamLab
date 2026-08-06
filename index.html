@@ -93,7 +93,7 @@
   header{
     position:sticky;top:0;z-index:100;background:var(--kirby-pink);
     border-bottom:6px solid var(--kirby-pink-deep);border-radius:0 0 26px 26px;
-    padding:12px 18px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 18px 16px;display:none;align-items:center;justify-content:space-between;gap:12px;
     box-shadow:0 6px 18px rgba(74,59,99,.18);
   }
   .hud-left{display:flex;align-items:center;gap:10px;min-width:0;}
@@ -123,6 +123,22 @@
     padding:6px 11px;border-radius:14px;font-family:var(--font-display);font-weight:700;font-size:.78rem;
     box-shadow:0 3px 0 rgba(74,59,99,.2);cursor:pointer;white-space:nowrap;border:2px solid var(--kirby-blush);
   }
+
+  /* PANTALLA DE SELECCIÓN DE ROL INICIAL */
+  .role-container {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 75vh; text-align: center; gap: 20px; position: relative; z-index: 2;
+  }
+  .role-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; color: var(--ink); }
+  .role-cards { display: flex; gap: 20px; width: 100%; max-width: 520px; margin-top: 10px; }
+  .role-card {
+    flex: 1; background: var(--card-bg); border: 4px solid var(--kirby-pink); border-radius: 24px;
+    padding: 25px 15px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 0 rgba(255,111,165,.35); display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .role-card:hover { transform: translateY(-4px); box-shadow: 0 12px 0 rgba(255,111,165,.45); }
+  .role-icon { font-size: 3rem; }
+  .role-card h3 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; color: var(--ink); }
 
   /* ESCENAS */
   .scene{display:none;max-width:640px;margin:0 auto;padding:22px 18px 60px;position:relative;z-index:1;}
@@ -449,11 +465,35 @@
     position: relative;
     z-index: 10;
   }
+  .main-footer strong { font-weight: 700; color: #384e3d; }
 
-  .main-footer strong {
-    font-weight: 700;
-    color: #384e3d;
+  /* DIÁLOGOS Y MODALES RPG */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
+    display: flex; justify-content: center; align-items: center; z-index: 9999;
   }
+  .rpg-dialog-card {
+    background: #1e1b4b; border: 3px solid #6366f1; border-radius: 16px;
+    padding: 24px; max-width: 450px; width: 90%; display: flex; align-items: center;
+    gap: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); color: #fff;
+  }
+  .rpg-avatar {
+    font-size: 45px; background: rgba(255,255,255,0.1); border-radius: 50%;
+    min-width: 75px; height: 75px; display: flex; align-items: center; justify-content: center;
+    border: 2px solid #818cf8;
+  }
+  .rpg-character-title { color: #a5b4fc; margin: 0 0 6px 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+  .rpg-dialog-text { font-size: 1rem; font-weight: 500; margin: 0 0 12px 0; line-height: 1.4; }
+  .rpg-input {
+    width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #6366f1;
+    background: #0f172a; color: #fff; margin-bottom: 12px; font-size: 0.95rem; box-sizing: border-box;
+  }
+  .rpg-btn {
+    background: #4f46e5; color: white; border: none; padding: 10px 18px; border-radius: 8px;
+    font-weight: bold; cursor: pointer; transition: background 0.2s; width: 100%;
+  }
+  .rpg-btn:hover { background: #4338ca; }
 </style>
 </head>
 <body>
@@ -461,7 +501,7 @@
   <!-- PANTALLA DE CARGA INICIAL -->
   <div id="loaderScreen">
     <div class="loader-spinner">🌟</div>
-    <h2>Cargando universo DreamLab...</h2>
+    <h2>Cargando universo desde Google Sheets...</h2>
   </div>
 
   <div class="sky-decor" aria-hidden="true">
@@ -473,8 +513,8 @@
 
   <div id="irisWipe" aria-hidden="true"><span class="iris-star">✦</span></div>
 
-  <!-- HUD -->
-  <header>
+  <!-- HUD (Oculto en selección de rol, visible al entrar) -->
+  <header id="mainHeader">
     <div class="hud-left">
       <div class="mascot-badge" aria-hidden="true"></div>
       <div class="hud-title">
@@ -486,11 +526,36 @@
       <button class="teacher-btn" onclick="requestTeacherAccess()">🔒 Zona Docente</button>
       <div class="stamp-pill" id="stampPill" onclick="openStampSheet()">📖 <span id="stampFraction">0/0</span></div>
       <div class="points-pill" id="pointsPill"><span>⭐</span><span id="pointsValue">0</span></div>
+      <button onclick="volverASeleccionRol()" style="background:#fff; border:2px solid var(--kirby-pink-deep); color:var(--text-accent); padding:4px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold; cursor:pointer;">🏠 Salir</button>
     </div>
   </header>
 
+  <!-- SELECCIÓN DE ROL INICIAL -->
+  <section class="scene active-scene" id="roleSelectScene">
+    <div class="role-container">
+      <div style="font-size: 3.8rem; animation: floatOrb 2.5s ease-in-out infinite alternate;">🌟</div>
+      <div class="title-banner">
+        <h1 class="role-title">¡Bienvenido a DreamLab!</h1>
+        <p>Selecciona tu perfil para comenzar:</p>
+      </div>
+      
+      <div class="role-cards">
+        <div class="role-card" onclick="seleccionarRol('estudiante')">
+          <div class="role-icon">🎓</div>
+          <h3>Estudiante</h3>
+          <p style="font-size:0.8rem; color:var(--ink-soft); font-weight:600;">Entrar a los mundos y completar tus misiones</p>
+        </div>
+        <div class="role-card" onclick="seleccionarRol('docente')">
+          <div class="role-icon">🔒</div>
+          <h3>Docente</h3>
+          <p style="font-size:0.8rem; color:var(--ink-soft); font-weight:600;">Consultar recursos e instrucciones presenciales</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- NIVEL 1: MAPA DE MUNDOS -->
-  <section class="scene active-scene" id="galaxyScene">
+  <section class="scene" id="galaxyScene">
     <div class="galaxy-header">
       <div class="title-banner">
         <h1>Mapa de Dream Land</h1>
@@ -546,12 +611,18 @@
     </div>
   </div>
 
-  <!-- MODAL LIBRETA DE SELLOS -->
-  <div class="modal-overlay" id="stampModal">
-    <div class="stamp-card">
-      <button class="modal-close-btn" onclick="closeStampSheet()" aria-label="Cerrar">✕</button>
-      <h3 id="stampModalTitle">Libreta de sellos</h3>
-      <div id="stampBookContent"></div>
+  <!-- MODAL LIBRETA DE SELLOS (Busca tu equivalente en el código) -->
+  <div class="modal-overlay" id="stampBookModal">
+    <!-- Añadimos min-height y flexbox para que no se aplaste -->
+    <div class="stamp-card" style="max-width: 520px; min-height: 260px; display: flex; flex-direction: column;">
+      <button class="modal-close-btn" onclick="closeAllModals()" aria-label="Cerrar">✕</button>
+      
+      <h3 style="margin-bottom: 15px;">⭐ Libreta de sellos</h3>
+      
+      <!-- Contenedor flexible para los sellos o el mensaje de vacío -->
+      <div id="stampBookContent" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;">
+        <!-- El contenido se inyecta por JS -->
+      </div>
     </div>
   </div>
 
@@ -560,7 +631,7 @@
     <div class="pin-modal-card">
       <h3>🔐 Acceso Docente</h3>
       <p style="font-size: 0.8rem; color: var(--ink-soft); margin-top: 4px; margin-bottom: 12px;">
-        Ingresa tu PIN o utiliza la autenticación biométrica de tu dispositivo.
+        Ingresa tu PIN o utiliza la autenticación biométrica.
       </p>
 
       <button class="btn-biometric" id="btnAuthBiometric" style="display:none;" onclick="authenticateWithBiometrics()">
@@ -583,10 +654,38 @@
 
   <!-- MODAL PANEL DE CLASE PRESENCIAL -->
   <div class="modal-overlay" id="teacherPanelModal">
-    <div class="stamp-card" style="max-width: 520px;">
+    <!-- Se añadieron estilos para garantizar altura mínima y flexbox interno -->
+    <div class="stamp-card" style="max-width: 520px; min-height: 260px; display: flex; flex-direction: column;">
       <button class="modal-close-btn" onclick="closeTeacherPanel()" aria-label="Cerrar">✕</button>
-      <h3 id="teacherPanelWorldTitle">📍 Actividades de Clase Presencial</h3>
-      <div id="teacherActivitiesContent"></div>
+      <h3 id="teacherPanelWorldTitle" style="margin-bottom: 15px;">📍 Actividades de Clase Presencial</h3>
+      <div id="teacherActivitiesContent" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;">
+        <!-- El contenido se inyecta por JS de forma segura -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- MODAL 1: REGISTRO DE APODO RPG -->
+  <div id="modalRegistroNombre" class="modal-overlay" style="display: none;">
+    <div class="rpg-dialog-card">
+      <div class="rpg-avatar">🧙‍♂️</div>
+      <div class="rpg-dialog-content">
+        <h4 class="rpg-character-title">Guía de la Aventura</h4>
+        <p class="rpg-dialog-text">¡Saludos, héroe! Veo que es tu primera vez por aquí. ¿Cómo te gustaría ser llamado en esta aventura?</p>
+        <input type="text" id="inputApodoRPG" placeholder="Escribe tu apodo RPG..." class="rpg-input">
+        <button class="rpg-btn" onclick="guardarApodoYEntrar()">¡Comenzar Aventura! ⚔️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: SALUDO RPG -->
+  <div id="rpgGuideModal" class="modal-overlay" style="display: none;">
+    <div class="rpg-dialog-card">
+      <div class="rpg-avatar">🧙‍♂️</div>
+      <div class="rpg-dialog-content">
+        <h4 class="rpg-character-title">Guía de la Aventura</h4>
+        <p class="rpg-dialog-text" id="rpgWelcomeMessage"></p>
+        <button class="rpg-btn" onclick="cerrarSaludoRPG()">¡Continuar! ⚔️</button>
+      </div>
     </div>
   </div>
 
@@ -617,55 +716,88 @@
   let islandPoints = [];
 
   // ============================================================
-  // ZONA DOCENTE (PIN + HUELLA / BIOMETRÍA)
+  // SELECCIÓN DE ROL
+  // ============================================================
+  function seleccionarRol(rol) {
+    document.getElementById('roleSelectScene').classList.remove('active-scene');
+    document.getElementById('roleSelectScene').style.display = 'none';
+    document.getElementById('mainHeader').style.display = 'flex';
+
+    if (rol === 'estudiante') {
+      document.getElementById('galaxyScene').classList.add('active-scene');
+      document.getElementById('galaxyScene').style.display = 'block';
+      iniciarFlujoRPG();
+    } else if (rol === 'docente') {
+      document.getElementById('galaxyScene').classList.add('active-scene');
+      document.getElementById('galaxyScene').style.display = 'block';
+      requestTeacherAccess();
+    }
+  }
+
+  function volverASeleccionRol() {
+    document.querySelectorAll('.scene').forEach(sc => {
+      sc.classList.remove('active-scene');
+      sc.style.display = 'none';
+    });
+    document.getElementById('mainHeader').style.display = 'none';
+    document.getElementById('roleSelectScene').classList.add('active-scene');
+    document.getElementById('roleSelectScene').style.display = 'block';
+  }
+
+  // ============================================================
+  // ZONA DOCENTE
   // ============================================================
   const TEACHER_PIN = "1234"; 
   let isTeacherAuthenticated = false;
 
-  function requestTeacherAccess() {
-  if (isTeacherAuthenticated) {
-    openTeacherPanel();
-  } else {
-    document.getElementById('teacherPinInput').value = '';
-    document.getElementById('pinModal').classList.add('open');
-    checkBiometricSupport();
-  }
-}
-
-function checkBiometricSupport() {
-  const btnAuth = document.getElementById('btnAuthBiometric');
-  const btnReg = document.getElementById('btnRegisterBiometric');
-
-  // Si no hay API biométrica en el navegador (ej. iframe bloqueado)
-  if (!window.PublicKeyCredential) {
-    btnAuth.style.display = 'none';
-    btnReg.style.display = 'none';
-    return;
-  }
-
-  const savedCredId = localStorage.getItem('dreamlab_biometric_cred');
-
-  if (savedCredId) {
-    // Si ya existe huella registrada, mostramos "Entrar con Huella" y el botón para re-configurar
-    btnAuth.style.display = 'flex';
-    btnReg.style.display = 'flex';
-    btnReg.innerHTML = '⚙️ Cambiar / Re-registrar Huella';
-  } else {
-    // Si no hay huella guardada, mostramos el botón de registrar directamente
-    btnAuth.style.display = 'none';
-    btnReg.style.display = 'flex';
-    btnReg.innerHTML = '⚙️ Registrar Huella / Face ID';
-  }
-
-  // Comprobación asíncrona de seguridad en segundo plano
-  if (PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
-    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
-      if (!supported && !savedCredId) {
-        btnReg.style.display = 'none';
+function requestTeacherAccess() {
+    closeAllModals();
+    if (isTeacherAuthenticated) {
+      openTeacherPanel();
+    } else {
+      const pinInput = document.getElementById('teacherPinInput');
+      if (pinInput) pinInput.value = '';
+      const pinModal = document.getElementById('pinModal');
+      if (pinModal) {
+        pinModal.style.display = 'flex';
+        pinModal.classList.add('open');
       }
-    }).catch(() => {});
+      checkBiometricSupport();
+    }
   }
-}
+
+  function checkBiometricSupport() {
+    const btnAuth = document.getElementById('btnAuthBiometric');
+    const btnReg = document.getElementById('btnRegisterBiometric');
+
+    if (!btnAuth || !btnReg) return;
+
+    if (!window.PublicKeyCredential) {
+      btnAuth.style.display = 'none';
+      btnReg.style.display = 'none';
+      return;
+    }
+
+    const savedCredId = localStorage.getItem('dreamlab_biometric_cred');
+
+    if (savedCredId) {
+      btnAuth.style.display = 'flex';
+      btnReg.style.display = 'flex';
+      btnReg.innerHTML = '⚙️ Cambiar / Re-registrar Huella';
+    } else {
+      btnAuth.style.display = 'none';
+      btnReg.style.display = 'flex';
+      btnReg.innerHTML = '⚙️ Registrar Huella / Face ID';
+    }
+
+    if (PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
+        if (!supported && !savedCredId) {
+          btnReg.style.display = 'none';
+        }
+      }).catch(() => {});
+    }
+  }
 
   async function registerBiometrics() {
     const inputPin = prompt("Ingresa el PIN docente por primera vez para autorizar el registro de tu huella:");
@@ -753,93 +885,132 @@ function checkBiometricSupport() {
   }
 
   function closePinModal() {
-    document.getElementById('pinModal').classList.remove('open');
+    const pinModal = document.getElementById('pinModal');
+    if (pinModal) {
+      pinModal.classList.remove('open');
+      pinModal.style.display = 'none';
+    }
   }
 
   function verifyTeacherPin() {
-    const inputPin = document.getElementById('teacherPinInput').value;
+    const inputPin = document.getElementById('teacherPinInput')?.value;
     if (inputPin === TEACHER_PIN) {
       isTeacherAuthenticated = true;
       closePinModal();
       openTeacherPanel();
     } else {
       alert("PIN incorrecto. Acceso denegado.");
-      document.getElementById('teacherPinInput').value = '';
+      const pinInput = document.getElementById('teacherPinInput');
+      if (pinInput) pinInput.value = '';
     }
   }
 
   function openTeacherPanel() {
+    closeAllModals();
+
     const worldKey = state.currentWorldKey;
     const content = document.getElementById('teacherActivitiesContent');
+    const titleEl = document.getElementById('teacherPanelWorldTitle');
     
+    if (!content) return;
+
     if (!worldKey || !worldsData[worldKey]) {
-      content.innerHTML = `<p style="text-align:center; padding: 20px; color: var(--ink-soft);">Selecciona primero un mundo en el mapa para consultar sus materiales presenciales.</p>`;
-      document.getElementById('teacherPanelWorldTitle').textContent = "📍 Zona Docente";
+      if (titleEl) titleEl.textContent = "📍 Zona Docente";
+      content.innerHTML = `
+        <div style="text-align:center; padding: 30px 20px;">
+          <div style="font-size: 2.5rem; margin-bottom: 10px;">🪐</div>
+          <h3 style="margin-bottom: 8px; color: var(--ink, #333);">Selecciona un Mundo</h3>
+          <p style="color: var(--ink-soft, #666); font-size: 0.9rem;">Ingresa a un mundo en el mapa para consultar sus recursos presenciales.</p>
+        </div>`;
     } else {
       const world = worldsData[worldKey];
-      document.getElementById('teacherPanelWorldTitle').textContent = `📍 Guía Presencial · ${world.name || world.title || 'Mundo'}`;
+      if (titleEl) titleEl.textContent = `📍 Guía Presencial · ${world.name || world.title || 'Mundo'}`;
       
       const activities = world.classActivities || [];
       
       if (activities.length === 0) {
-        content.innerHTML = `<p style="text-align:center; padding:20px; color:var(--ink-soft);">No hay actividades presenciales registradas para este mundo.</p>`;
+        content.innerHTML = `
+          <div style="text-align:center; padding: 30px 20px;">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">📋</div>
+            <p style="color: var(--ink-soft, #666); font-size: 0.9rem;">No hay actividades presenciales registradas para este mundo.</p>
+          </div>`;
       } else {
         content.innerHTML = activities.map(act => `
-          <div class="class-activity-card">
-            <span class="class-act-badge">${act.type || 'RECURSO PRESENCIAL'}</span>
-            <h4 style="font-size: 0.95rem; margin-top: 6px; color: var(--ink); font-family: var(--font-display);">${act.title}</h4>
-            ${act.instruction ? `<p class="class-act-instruction">💡 <strong>Indicaciones:</strong> ${act.instruction}</p>` : ''}
-            ${act.link && act.link !== '#' ? `<a href="${act.link}" target="_blank" class="btn-mission" style="display:inline-flex; text-decoration:none; margin-top:8px;">🚀 Abrir Recurso / Material</a>` : ''}
+          <div class="class-activity-card" style="background:#f9f8ff; border:1px solid #e0d9fc; padding:12px; border-radius:12px; margin-bottom:10px;">
+            <span class="class-act-badge" style="background:#6c5ce7; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:6px; text-transform:uppercase;">${act.type || 'RECURSO PRESENCIAL'}</span>
+            <h4 style="font-size: 0.95rem; margin-top: 6px; color: var(--ink, #333); font-family: var(--font-display);">${act.title}</h4>
+            ${act.instruction ? `<p class="class-act-instruction" style="font-size:0.85rem; margin-top:4px;">💡 <strong>Indicaciones:</strong> ${act.instruction}</p>` : ''}
+            ${act.link && act.link !== '#' ? `<a href="${act.link}" target="_blank" class="btn-mission" style="display:inline-flex; text-decoration:none; margin-top:8px; padding:6px 12px; font-size:0.8rem; background:#00b894; color:#fff; border-radius:8px;">🚀 Abrir Recurso / Material</a>` : ''}
           </div>
         `).join('');
       }
     }
 
-    document.getElementById('teacherPanelModal').classList.add('open');
+    const panelModal = document.getElementById('teacherPanelModal');
+    if (panelModal) {
+      panelModal.style.display = 'flex';
+      panelModal.classList.add('open');
+    }
   }
 
   function closeTeacherPanel() {
-    document.getElementById('teacherPanelModal').classList.remove('open');
+    const panelModal = document.getElementById('teacherPanelModal');
+    if (panelModal) {
+      panelModal.classList.remove('open');
+      panelModal.style.display = 'none';
+    }
   }
 
   // ============================================================
-  // CARGA DE DATOS DESDE GOOGLE SHEETS (CON MULTI-FORMATO COMPATIBLE)
+  // CARGA DE DATOS DESDE GOOGLE SHEETS
   // ============================================================
   async function loadDataFromSheets() {
-  try {
-    const response = await fetch(GAS_API_URL);
-    if (!response.ok) throw new Error("Error HTTP " + response.status);
-    
-    // Guardar directamente la respuesta ya organizada por el Script
-    worldsData = await response.json();
-    console.log("📊 DATOS RECIBIDOS:", worldsData);
-    
-    if (!worldsData || Object.keys(worldsData).length === 0) {
-      throw new Error("El JSON devuelto está vacío o no se encontraron mundos.");
+    try {
+      const response = await fetch(GAS_API_URL);
+      if (!response.ok) throw new Error("Error HTTP " + response.status);
+      
+      const jsonData = await response.json();
+      
+      // Le decimos al código que busque específicamente el "cajón" de los mundos
+      if (jsonData.worlds) {
+        worldsData = jsonData.worlds;
+      } else if (jsonData.data) {
+        worldsData = jsonData.data;
+      } else {
+        worldsData = jsonData;
+      }
+      
+      console.log("📊 DATOS RECIBIDOS DESDE GOOGLE SHEETS:", worldsData);
+      
+      if (!worldsData || Object.keys(worldsData).length === 0) {
+        throw new Error("El JSON devuelto está vacío o no se encontraron mundos.");
+      }
+      
+      const loader = document.getElementById('loaderScreen');
+      if (loader) loader.style.display = 'none';
+      
+      renderPlanets();
+    } catch (error) {
+      console.error('❌ Error en loadDataFromSheets:', error);
+      const loader = document.getElementById('loaderScreen');
+      if (loader) {
+        loader.innerHTML = `
+          <div style="max-width:480px; background:#fff; padding:20px; border-radius:16px; border:3px solid #ff6fa5; margin:auto;">
+            <h2 style="color:#b23d6d;">⚠️ Error de Lectura de Datos</h2>
+            <p style="font-size:0.9rem; margin:10px 0; color:#4a3b63;">
+              No se pudieron extraer los datos del Google Sheet.<br>
+              <strong>Detalle:</strong> ${error.message}
+            </p>
+          </div>
+        `;
+      }
     }
-    
-    document.getElementById('loaderScreen').style.display = 'none';
-    renderPlanets();
-  } catch (error) {
-    console.error('❌ Error en loadDataFromSheets:', error);
-    document.getElementById('loaderScreen').innerHTML = `
-      <div style="max-width:480px; background:#fff; padding:20px; border-radius:16px; border:3px solid #ff6fa5;">
-        <h2 style="color:#b23d6d;">⚠️ Error de Lectura de Datos</h2>
-        <p style="font-size:0.9rem; margin:10px 0; color:#4a3b63;">
-          No se pudieron extraer los datos del Google Sheet.<br>
-          <strong>Detalle:</strong> ${error.message}
-        </p>
-      </div>
-    `;
   }
-}
 
-  // OBTENER TEMAS Y ACTIVIDADES FLEXIBLE (SOPORTA VARIADAS ESTRUCTURAS DEL SHEET)
   function getUnitTopics(worldKey, unitId, islandIndex) {
     const world = worldsData[worldKey];
     if (!world) return PLACEHOLDER_TOPIC;
 
-    // 1. Si la unidad misma trae su lista de "topics"
     if (world.islands && world.islands[islandIndex]) {
       const isl = world.islands[islandIndex];
       if (isl.topics && Array.isArray(isl.topics) && isl.topics.length > 0) {
@@ -850,7 +1021,6 @@ function checkBiometricSupport() {
       }
     }
 
-    // 2. Si los temas están estructurados en world.topics por unitId o por índice
     if (world.topics) {
       const topData = world.topics[unitId] || world.topics[islandIndex] || world.topics[String(islandIndex + 1)];
       if (topData) {
@@ -896,8 +1066,10 @@ function checkBiometricSupport() {
     const fractionText = `${done}/${total}`;
 
     const stampPill = document.getElementById('stampPill');
-    stampPill.style.display = 'flex';
-    document.getElementById('stampFraction').textContent = fractionText;
+    if (stampPill) stampPill.style.display = 'flex';
+    
+    const stampFrac = document.getElementById('stampFraction');
+    if (stampFrac) stampFrac.textContent = fractionText;
 
     const fill = document.getElementById('worldProgressFill');
     const label = document.getElementById('worldProgressLabel');
@@ -909,6 +1081,7 @@ function checkBiometricSupport() {
 
   function renderPlanets(){
     const grid = document.getElementById('planetsGrid');
+    if (!grid) return;
     grid.innerHTML = '';
     
     Object.entries(worldsData).forEach(([key, world]) => {
@@ -940,9 +1113,11 @@ function checkBiometricSupport() {
 
   function renderOrbit(worldKey){
     const world = worldsData[worldKey];
-    document.getElementById('worldTitle').textContent = world.name || world.title || 'Mundo';
+    const wTitle = document.getElementById('worldTitle');
+    if (wTitle) wTitle.textContent = world.name || world.title || 'Mundo';
 
     const list = document.getElementById('islandsList');
+    if (!list) return;
     list.innerHTML = '';
 
     const startNode = document.createElement('div');
@@ -988,10 +1163,14 @@ function checkBiometricSupport() {
 
   function renderIsland(worldKey, unitId, unitTitle, islandIndex){
     const world = worldsData[worldKey];
-    document.getElementById('hudLocation').textContent = `Mundo: ${world ? (world.name || world.title) : ''}`;
-    document.getElementById('islandTitleDisplay').textContent = unitTitle;
+    const hudLoc = document.getElementById('hudLocation');
+    if (hudLoc) hudLoc.textContent = `Mundo: ${world ? (world.name || world.title) : ''}`;
+    
+    const islTitle = document.getElementById('islandTitleDisplay');
+    if (islTitle) islTitle.textContent = unitTitle;
 
     const container = document.getElementById('topicsContainer');
+    if (!container) return;
     container.innerHTML = '';
 
     const idx = (islandIndex !== undefined) ? islandIndex : state.currentIslandIndex - 1;
@@ -1034,37 +1213,53 @@ function checkBiometricSupport() {
     }
     state.missionsDone[missionKey] = true;
     state.points += 10;
-    document.getElementById('pointsValue').textContent = state.points;
+    
+    const ptsVal = document.getElementById('pointsValue');
+    if (ptsVal) ptsVal.textContent = state.points;
     state.pendingLink = link;
 
-    document.getElementById('rewardMissionName').textContent = `"${missionTitle}" completada.`;
-    document.getElementById('rewardPoints').textContent = '+10 puntos';
-    document.getElementById('rewardModal').classList.add('open');
+    const rName = document.getElementById('rewardMissionName');
+    if (rName) rName.textContent = `"${missionTitle}" completada.`;
+    
+    const rPts = document.getElementById('rewardPoints');
+    if (rPts) rPts.textContent = '+10 puntos';
+
+    const rModal = document.getElementById('rewardModal');
+    if (rModal) rModal.classList.add('open');
 
     const [worldKey, unitId] = missionKey.split('-');
-    renderIsland(worldKey, unitId, document.getElementById('islandTitleDisplay').textContent, state.currentIslandIndex - 1);
+    const currentTitle = document.getElementById('islandTitleDisplay')?.textContent || '';
+    renderIsland(worldKey, unitId, currentTitle, state.currentIslandIndex - 1);
     updateWorldProgressUI();
   }
 
-  document.getElementById('rewardContinueBtn').addEventListener('click', () => {
-    document.getElementById('rewardModal').classList.remove('open');
-    if (state.pendingLink && state.pendingLink !== '#'){
-      window.open(state.pendingLink, '_blank');
-    }
-    state.pendingLink = null;
-  });
+  const rewardBtn = document.getElementById('rewardContinueBtn');
+  if (rewardBtn) {
+    rewardBtn.addEventListener('click', () => {
+      const rModal = document.getElementById('rewardModal');
+      if (rModal) rModal.classList.remove('open');
+      if (state.pendingLink && state.pendingLink !== '#'){
+        window.open(state.pendingLink, '_blank');
+      }
+      state.pendingLink = null;
+    });
+  }
 
   function markIslandVisited(worldKey, unitId){
     state.visited[`${worldKey}-${unitId}`] = true;
   }
 
   function openStampSheet(){
+    closeAllModals();
     if (!state.currentWorldKey) return;
     const worldKey = state.currentWorldKey;
     const world = worldsData[worldKey];
-    document.getElementById('stampModalTitle').textContent = `Libreta de sellos · ${world.name || world.title || 'Mundo'}`;
+    
+    const stampTitle = document.getElementById('stampModalTitle');
+    if (stampTitle) stampTitle.textContent = `Libreta de sellos · ${world.name || world.title || 'Mundo'}`;
 
     const container = document.getElementById('stampBookContent');
+    if (!container) return;
     container.innerHTML = '';
 
     if (world.islands) {
@@ -1089,11 +1284,16 @@ function checkBiometricSupport() {
       });
     }
 
-    document.getElementById('stampModal').classList.add('open');
+    const stampModal = document.getElementById('stampBookModal');
+    if (stampModal) {
+      stampModal.style.display = 'flex';
+      stampModal.classList.add('open');
+    }
   }
 
   function closeStampSheet(){
-    document.getElementById('stampModal').classList.remove('open');
+    const stampModal = document.getElementById('stampModal');
+    if (stampModal) stampModal.classList.remove('open');
   }
 
   function transitionScenes(fromId, toId, callback){
@@ -1101,7 +1301,12 @@ function checkBiometricSupport() {
     const fromScene = document.getElementById(fromId);
     const toScene = document.getElementById(toId);
 
-    iris.classList.add('closing');
+    if (!fromScene || !toScene) {
+      if (callback) callback();
+      return;
+    }
+
+    if (iris) iris.classList.add('closing');
 
     setTimeout(() => {
       fromScene.style.display = 'none';
@@ -1112,7 +1317,7 @@ function checkBiometricSupport() {
       toScene.style.display = 'block';
       toScene.classList.add('active-scene');
 
-      setTimeout(() => iris.classList.remove('closing'), WIPE_OPEN_DELAY_MS);
+      if (iris) setTimeout(() => iris.classList.remove('closing'), WIPE_OPEN_DELAY_MS);
     }, WIPE_CLOSE_MS);
   }
 
@@ -1121,15 +1326,20 @@ function checkBiometricSupport() {
     state.currentIslandIndex = 0;
     transitionScenes('galaxyScene', 'orbitScene', () => {
       const world = worldsData[worldKey];
-      document.getElementById('hudLocation').textContent = `Mundo: ${world ? (world.name || world.title) : ''}`;
+      const hudLoc = document.getElementById('hudLocation');
+      if (hudLoc) hudLoc.textContent = `Mundo: ${world ? (world.name || world.title) : ''}`;
       renderOrbit(worldKey);
     });
   }
 
   function travelToGalaxy(){
     transitionScenes('orbitScene', 'galaxyScene', () => {
-      document.getElementById('hudLocation').textContent = 'Mapa de Dream Land';
-      document.getElementById('stampPill').style.display = 'none';
+      const hudLoc = document.getElementById('hudLocation');
+      if (hudLoc) hudLoc.textContent = 'Mapa de Dream Land';
+      
+      const stampPill = document.getElementById('stampPill');
+      if (stampPill) stampPill.style.display = 'none';
+      
       renderPlanets();
     });
   }
@@ -1151,14 +1361,16 @@ function checkBiometricSupport() {
     const worldKey = state.currentWorldKey;
     transitionScenes('islandScene', 'orbitScene', () => {
       const world = worldsData[worldKey];
-      document.getElementById('hudLocation').textContent = `Mundo: ${world ? (world.name || world.title) : ''}`;
+      const hudLoc = document.getElementById('hudLocation');
+      if (hudLoc) hudLoc.textContent = `Mundo: ${world ? (world.name || world.title) : ''}`;
       renderOrbit(worldKey);
     });
   }
 
   function drawPathAndPositionStar(){
     const container = document.getElementById('orbitContainer');
-    if (!container || !document.getElementById('orbitScene').classList.contains('active-scene')) return;
+    const orbitScene = document.getElementById('orbitScene');
+    if (!container || !orbitScene || !orbitScene.classList.contains('active-scene')) return;
 
     const anchors = container.querySelectorAll('.path-anchor');
     const nodes = container.querySelectorAll('.path-node');
@@ -1188,7 +1400,7 @@ function checkBiometricSupport() {
       }
     });
 
-    routeLine.setAttribute('d', pathD);
+    if (routeLine) routeLine.setAttribute('d', pathD);
     moveStarToIsland(state.currentIslandIndex);
   }
 
@@ -1196,8 +1408,10 @@ function checkBiometricSupport() {
     if (!islandPoints[index]) return;
     state.currentIslandIndex = index;
     const rider = document.getElementById('mascotRider');
-    rider.style.left = `${islandPoints[index].x}px`;
-    rider.style.top = `${islandPoints[index].y}px`;
+    if (rider) {
+      rider.style.left = `${islandPoints[index].x}px`;
+      rider.style.top = `${islandPoints[index].y}px`;
+    }
   }
 
   function scheduleRouteRedraw(){
@@ -1219,8 +1433,69 @@ function checkBiometricSupport() {
     }
   }
 
+  // ============================================================
+  // LÓGICA DE MODALES RPG Y APODO DE JUGADOR
+  // ============================================================
+  function iniciarFlujoRPG() {
+    const apodoGuardado = localStorage.getItem('dreamlab_apodo_rpg');
+    const modalReg = document.getElementById('modalRegistroNombre');
+    const modalGuide = document.getElementById('rpgGuideModal');
+    const msgWelcome = document.getElementById('rpgWelcomeMessage');
+
+    if (!apodoGuardado) {
+      if (modalReg) {
+        modalReg.style.display = 'flex';
+        modalReg.classList.add('open');
+      }
+    } else {
+      if (msgWelcome) {
+        msgWelcome.textContent = `¡Qué alegría verte de nuevo, ${apodoGuardado}! Los reinos de Dream Land aguardan por ti.`;
+      }
+      if (modalGuide) {
+        modalGuide.style.display = 'flex';
+        modalGuide.classList.add('open');
+      }
+    }
+  }
+
+  function guardarApodoYEntrar() {
+    const input = document.getElementById('inputApodoRPG');
+    const apodo = input ? input.value.trim() : '';
+
+    if (!apodo) {
+      alert("¡Ingresa un apodo para poder comenzar tu aventura!");
+      return;
+    }
+
+    localStorage.setItem('dreamlab_apodo_rpg', apodo);
+    const modalReg = document.getElementById('modalRegistroNombre');
+    if (modalReg) {
+      modalReg.classList.remove('open');
+      modalReg.style.display = 'none';
+    }
+  }
+
+  function cerrarSaludoRPG() {
+    const modalGuide = document.getElementById('rpgGuideModal');
+    if (modalGuide) {
+      modalGuide.classList.remove('open');
+      modalGuide.style.display = 'none';
+    }
+  }
+
   // INICIAR CONEXIÓN
+  closeAllModals();
   loadDataFromSheets();
+  
+  // Función maestra para cerrar cualquier modal que esté abierto
+  function closeAllModals() {
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(modal => {
+      modal.classList.remove('open');
+      modal.style.display = 'none';
+    });
+  }
+  
 </script>
 
 <footer class="main-footer">
