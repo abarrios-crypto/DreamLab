@@ -718,16 +718,73 @@
   // ============================================================
   // SELECCIÓN DE ROL
   // ============================================================
-  function seleccionarRol(rol) {
-    document.getElementById('roleSelectScene').classList.remove('active-scene');
-    document.getElementById('roleSelectScene').style.display = 'none';
-    document.getElementById('mainHeader').style.display = 'flex';
-
+async function seleccionarRol(rol) {
     if (rol === 'estudiante') {
-      document.getElementById('galaxyScene').classList.add('active-scene');
-      document.getElementById('galaxyScene').style.display = 'block';
-      iniciarFlujoRPG();
+      // 1. PEDIR MATRÍCULA
+      const matricula = prompt("🧑‍🚀 ¡Bienvenido a DreamLab!\nPor favor, ingresa tu matrícula:");
+      if (!matricula || matricula.trim() === "") return; // Si cancela, no entra
+
+      try {
+        // 2. CONSULTAR A GOOGLE SHEETS
+        // Usamos tu variable GAS_API_URL que ya tienes definida arriba
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            action: 'loginEstudiante',
+            codigo: matricula.trim() 
+          })
+        });
+        const data = await response.json();
+
+        // 3. PROCESAR RESPUESTA
+        if (data.status === 'requiere_nombre') {
+           let nuevoNombre = prompt("Es tu primera vez por aquí.\n¿Cómo te gusta que te llamen? (Ej. Ana, Paco):");
+           if (!nuevoNombre) nuevoNombre = "Astronauta";
+
+           const resRegistro = await fetch(GAS_API_URL, {
+              method: 'POST',
+              body: JSON.stringify({ action: 'loginEstudiante', codigo: matricula.trim(), nombre: nuevoNombre })
+           });
+           const dataReg = await resRegistro.json();
+           
+           localStorage.setItem('studentName', dataReg.usuario.nombre);
+           alert(`¡Excelente, ${dataReg.usuario.nombre}! Tu perfil está listo.`);
+           
+        } else if (data.status === 'success') {
+           localStorage.setItem('studentName', data.usuario.nombre);
+           alert(`¡Qué gusto verte de nuevo, ${data.usuario.nombre}!`);
+           
+           // AQUI SE VINCULAN LAS ESTRELLAS: 
+           // Leemos el historial de Google Sheets y lo guardamos en la memoria del juego
+           if (data.userProgress) {
+               state.missionsDone = { ...state.missionsDone, ...data.userProgress };
+               // Calculamos las estrellas (1 por cada misión completada)
+               state.points = Object.keys(state.missionsDone).length; 
+           }
+        }
+
+        // 4. MOSTRAR EL MAPA Y ACTUALIZAR LOS PUNTOS VISUALES
+        document.getElementById('roleSelectScene').classList.remove('active-scene');
+        document.getElementById('roleSelectScene').style.display = 'none';
+        
+        document.getElementById('mainHeader').style.display = 'flex';
+        const ptsVal = document.getElementById('pointsValue');
+        if (ptsVal) ptsVal.textContent = state.points; // Actualiza el número de estrellas en pantalla
+
+        document.getElementById('galaxyScene').classList.add('active-scene');
+        document.getElementById('galaxyScene').style.display = 'block';
+
+      } catch (error) {
+        console.error("Error de conexión:", error);
+        alert("Hubo un problema conectando con la base de datos. Intenta de nuevo.");
+      }
+
     } else if (rol === 'docente') {
+      // El flujo del docente se queda exactamente igual
+      document.getElementById('roleSelectScene').classList.remove('active-scene');
+      document.getElementById('roleSelectScene').style.display = 'none';
+      document.getElementById('mainHeader').style.display = 'flex';
+      
       document.getElementById('galaxyScene').classList.add('active-scene');
       document.getElementById('galaxyScene').style.display = 'block';
       requestTeacherAccess();
@@ -962,10 +1019,8 @@ function requestTeacherAccess() {
   }
 
 async function saveProgressToSheets(missionKey) {
-    // 1. Recuperamos el ID o nombre del estudiante que ya tienes en el sistema
     const currentStudent = localStorage.getItem('studentName') || 'usuario_desconocido'; 
     
-    // 2. Preparamos el paquete de datos exacto que pide tu hoja "ProgresoAlumnos"
     const payload = {
       action: 'saveProgress',
       usuario_id: currentStudent,
@@ -974,11 +1029,10 @@ async function saveProgressToSheets(missionKey) {
     };
 
     try {
-      // 3. Enviamos los datos a la misma URL que ya usas para descargar los mundos
-      // NOTA: Asegúrate de reemplazar 'URL_DE_TU_SCRIPT' por tu enlace real de Google Apps Script
-      await fetch('URL_DE_TU_SCRIPT', {
+      // Usamos tu GAS_API_URL oficial en lugar de 'URL_DE_TU_SCRIPT'
+      await fetch(GAS_API_URL, {
         method: 'POST',
-        mode: 'no-cors', // Esto evita bloqueos de seguridad de Google
+        mode: 'no-cors', 
         headers: {
           'Content-Type': 'application/json'
         },
