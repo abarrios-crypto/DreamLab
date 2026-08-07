@@ -718,17 +718,25 @@
   // ============================================================
   // SELECCIÓN DE ROL
   // ============================================================
-async function seleccionarRol(rol) {
+let procesandoLogin = false; // Candado para evitar el doble clic
+
+  async function seleccionarRol(rol) {
     if (rol === 'estudiante') {
-      // 1. PEDIR MATRÍCULA
+      
+      // Si ya está cargando, ignora el segundo clic
+      if (procesandoLogin) return; 
+      procesandoLogin = true;
+
       const matricula = prompt("🧑‍🚀 ¡Bienvenido a DreamLab!\nPor favor, ingresa tu matrícula:");
-      if (!matricula || matricula.trim() === "") return; // Si cancela, no entra
+      if (!matricula || matricula.trim() === "") {
+        procesandoLogin = false; // Quitamos el candado si el alumno cancela
+        return; 
+      }
 
       try {
-        // 2. CONSULTAR A GOOGLE SHEETS
-        // Usamos tu variable GAS_API_URL que ya tienes definida arriba
         const response = await fetch(GAS_API_URL, {
           method: 'POST',
+          headers: { 'Content-Type': 'text/plain' }, 
           body: JSON.stringify({ 
             action: 'loginEstudiante',
             codigo: matricula.trim() 
@@ -736,51 +744,52 @@ async function seleccionarRol(rol) {
         });
         const data = await response.json();
 
-        // 3. PROCESAR RESPUESTA
-        if (data.status === 'requiere_nombre') {
+        // Si es nuevo O si por algún error en las pruebas se guardó sin nombre
+        if (data.status === 'requiere_nombre' || (data.status === 'success' && !data.usuario.nombre)) {
            let nuevoNombre = prompt("Es tu primera vez por aquí.\n¿Cómo te gusta que te llamen? (Ej. Ana, Paco):");
            if (!nuevoNombre) nuevoNombre = "Astronauta";
 
            const resRegistro = await fetch(GAS_API_URL, {
               method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
               body: JSON.stringify({ action: 'loginEstudiante', codigo: matricula.trim(), nombre: nuevoNombre })
            });
            const dataReg = await resRegistro.json();
            
            localStorage.setItem('studentName', dataReg.usuario.nombre);
-           alert(`¡Excelente, ${dataReg.usuario.nombre}! Tu perfil está listo.`);
            
         } else if (data.status === 'success') {
            localStorage.setItem('studentName', data.usuario.nombre);
-           alert(`¡Qué gusto verte de nuevo, ${data.usuario.nombre}!`);
            
-           // AQUI SE VINCULAN LAS ESTRELLAS: 
-           // Leemos el historial de Google Sheets y lo guardamos en la memoria del juego
+           // Cargamos las estrellas
            if (data.userProgress) {
                state.missionsDone = { ...state.missionsDone, ...data.userProgress };
-               // Calculamos las estrellas (1 por cada misión completada)
                state.points = Object.keys(state.missionsDone).length; 
            }
         }
 
-        // 4. MOSTRAR EL MAPA Y ACTUALIZAR LOS PUNTOS VISUALES
+        // Cambiamos la pantalla visualmente
         document.getElementById('roleSelectScene').classList.remove('active-scene');
         document.getElementById('roleSelectScene').style.display = 'none';
-        
         document.getElementById('mainHeader').style.display = 'flex';
+        
         const ptsVal = document.getElementById('pointsValue');
-        if (ptsVal) ptsVal.textContent = state.points; // Actualiza el número de estrellas en pantalla
+        if (ptsVal) ptsVal.textContent = state.points; 
 
         document.getElementById('galaxyScene').classList.add('active-scene');
         document.getElementById('galaxyScene').style.display = 'block';
 
+        // ¡AQUÍ ESTÁ LA MAGIA! Despertamos al personaje para que te salude
+        iniciarFlujoRPG();
+
       } catch (error) {
         console.error("Error de conexión:", error);
-        alert("Hubo un problema conectando con la base de datos. Intenta de nuevo.");
+        alert("Hubo un problema conectando con la base de datos.");
+      } finally {
+        procesandoLogin = false; // Liberamos el candado al terminar
       }
 
     } else if (rol === 'docente') {
-      // El flujo del docente se queda exactamente igual
       document.getElementById('roleSelectScene').classList.remove('active-scene');
       document.getElementById('roleSelectScene').style.display = 'none';
       document.getElementById('mainHeader').style.display = 'flex';
