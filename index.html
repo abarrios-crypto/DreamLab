@@ -784,13 +784,24 @@
            const nombreDisplay = document.getElementById('playerNameDisplay');
            if (nombreDisplay) nombreDisplay.textContent = nombreFinal;
            
-           if (data.userProgress) {
+           // 1. Inyectar el historial de misiones que viene de Google Sheets
+           // Compatible con arreglo de misiones o el objeto userProgress original
+           if (data.misiones && Array.isArray(data.misiones)) {
+               data.misiones.forEach(mision => {
+                   if (mision) state.missionsDone[mision.trim()] = true;
+               });
+           } else if (data.userProgress) {
                state.missionsDone = { ...state.missionsDone, ...data.userProgress };
-               state.points = Object.keys(state.missionsDone).length; 
            }
+
+           // 2. Contar las misiones completadas y actualizar los puntos (1 Estrella por misión)
+           state.points = Object.keys(state.missionsDone).length; 
+           
            const ptsVal = document.getElementById('pointsValue');
            if (ptsVal) ptsVal.textContent = state.points; 
 
+           // 3. Forzar a la interfaz a refrescarse con los nuevos datos
+           updateWorldProgressUI();
            const msgWelcome = document.getElementById('rpgWelcomeMessage');
            if (msgWelcome) {
              msgWelcome.textContent = `¡Qué alegría verte de nuevo, ${nombreFinal}! Los reinos de Dream Land aguardan por ti.`;
