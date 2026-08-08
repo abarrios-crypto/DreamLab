@@ -675,7 +675,7 @@
       <div class="rpg-avatar">🧙‍♂️</div>
       <div class="rpg-dialog-content">
         <h4 class="rpg-character-title">Guía de la Aventura</h4>
-        <p class="rpg-dialog-text">¡Saludos, héroe! Veo que es tu primera vez por aquí. ¿Cómo te gustaría ser llamado en esta aventura?</p>
+        <p class="rpg-dialog-text">¡Saludos, Bio-aprendiz! Veo que es tu primera vez por aquí. ¿Cómo te gustaría ser llamado en esta aventura?</p>
         <input type="text" id="inputApodoRPG" placeholder="Escribe tu apodo RPG..." class="rpg-input">
         <button class="rpg-btn" onclick="guardarApodoYEntrar()">¡Comenzar Aventura! ⚔️</button>
       </div>
@@ -1318,52 +1318,66 @@ async function saveProgressToSheets(missionKey) {
     });
   }
 
-function completeMission(missionKey, missionTitle, link, alreadyDone){
-    // Si la misión ya estaba completada, solo abrimos el enlace y no damos más estrellas
-    if (alreadyDone){
-      if (link && link !== '#') window.open(link, '_blank');
-      return;
-    }
-    
-    // 1. ABRIR EL RECURSO INMEDIATAMENTE
-    if (link && link !== '#') {
-      window.open(link, '_blank');
-    }
+function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement){
+    // 1. SI YA ESTABA HECHA, NO HACEMOS NADA
+    if (alreadyDone) return;
 
-    // 2. CONFIRMAR COMPLETAR LA ACTIVIDAD (Pequeña pausa para que abra la pestaña)
-    setTimeout(() => {
-      let confirmar = confirm(`Se ha abierto el recurso en otra pestaña.\n\n¿Ya leíste/completaste la actividad "${missionTitle}"?\n\nDa clic en "Aceptar" para recibir tu estrella y guardar tu progreso, o "Cancelar" si aún no terminas.`);
-      
-      if (confirmar) {
-        // Guardamos el progreso local
-        state.missionsDone[missionKey] = true;
-        state.points += 1;
+    // 2. VERIFICAMOS EN QUÉ PASO ESTAMOS USANDO UN DATO OCULTO EN EL BOTÓN
+    const step = btnElement.getAttribute('data-step') || '1';
 
-        // 👇 ENVIAMOS EL PROGRESO A GOOGLE SHEETS 👇
-        saveProgressToSheets(missionKey);
-
-        // Actualizamos los puntos visuales
-        const ptsVal = document.getElementById('pointsValue');
-        if (ptsVal) ptsVal.textContent = state.points;
-
-        // Mostramos el modal de recompensa
-        const rName = document.getElementById('rewardMissionName');
-        if (rName) rName.textContent = `"${missionTitle}" completada.`;
+    if (step === '1') {
+        // --- PASO 1: ABRIR RECURSO Y PREPARAR VALIDACIÓN ---
+        if (link && link !== '#') {
+            window.open(link, '_blank');
+        }
         
-        const rPts = document.getElementById('rewardPoints');
-        if (rPts) rPts.textContent = '+1 estrella';
+        // Cambiamos el estado y la apariencia del botón
+        btnElement.setAttribute('data-step', '2');
+        btnElement.innerHTML = '🔍 Validar Misión';
+        btnElement.style.backgroundColor = '#ffda4d'; // Amarillo Warp
+        btnElement.style.color = '#7a4c00';
+        btnElement.style.boxShadow = '0 4px 0 #ff9b3d';
+        
+    } else if (step === '2') {
+        // --- PASO 2: PROMESA DEL BIO-HÉROE Y RECOMPENSA ---
+        const confirmar = confirm(`¿Das tu palabra de honor como futuro Bio-Héroe de que has completado esta misión y estás listo para absorber una nueva Habilidad de Copia?`);
+        
+        if (confirmar) {
+            // ACTUALIZACIÓN VISUAL Y DE ESTRELLAS DE CRÉDITO
+            state.missionsDone[missionKey] = true;
+            state.points += 1; // Aunque la variable se llame 'points' en el código, visualmente serán EC
 
-        const rModal = document.getElementById('rewardModal');
-        if (rModal) rModal.classList.add('open');
+            // Pintamos el botón de verde de éxito
+            btnElement.classList.add('done');
+            btnElement.innerHTML = '✓ Hecho';
+            btnElement.style.backgroundColor = ''; 
+            btnElement.style.color = '';
+            btnElement.style.boxShadow = '';
+            
+            // Pintamos la tarjeta de fondo verde
+            const card = btnElement.closest('.mission-card');
+            if (card) card.classList.add('mission-done');
 
-        // Renderizamos la isla para que cambie a verde
-        const [worldKey, unitId] = missionKey.split('-');
-        const currentTitle = document.getElementById('islandTitleDisplay')?.textContent || '';
-        renderIsland(worldKey, unitId, currentTitle, state.currentIslandIndex - 1);
-        updateWorldProgressUI();
-      }
-    }, 500); // Medio segundo de espera
-  }
+            // Actualizamos el contador del HUD
+            const ptsVal = document.getElementById('pointsValue');
+            if (ptsVal) ptsVal.textContent = state.points;
+
+            // ENVIAMOS EL PROGRESO A GOOGLE SHEETS EN SILENCIO
+            saveProgressToSheets(missionKey);
+            updateWorldProgressUI();
+            
+            // Mostramos el modal de recompensa con la nueva narrativa
+            const rName = document.getElementById('rewardMissionName');
+            if (rName) rName.textContent = `¡Habilidad de Copia en progreso!`;
+            const rPts = document.getElementById('rewardPoints');
+            if (rPts) rPts.textContent = '+1 Estrella de Crédito';
+            const rModal = document.getElementById('rewardModal');
+            if (rModal) rModal.classList.add('open');
+            
+            console.log("💖✅ Progreso del Bio-Aprendiz sincronizado en DreamLab");
+        }
+    }
+}
 
   const rewardBtn = document.getElementById('rewardContinueBtn');
   if (rewardBtn) {
@@ -1573,7 +1587,7 @@ function completeMission(missionKey, missionTitle, link, alreadyDone){
     let apodo = input ? input.value.trim() : '';
 
     if (!apodo) {
-      alert("¡Ingresa un apodo para poder comenzar tu aventura!");
+      alert("¡Ingresa un Nombre de Bio-Aprendiz para poder comenzar tu aventura!");
       return;
     }
 
