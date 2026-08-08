@@ -720,14 +720,11 @@
 
   let islandPoints = [];
 
-  // ============================================================
-  // SELECCIÓN DE ROL
-  // ============================================================
 // ============================================================
   // SELECCIÓN DE ROL
   // ============================================================
   let procesandoLogin = false; 
-  let matriculaActual = ""; // Variable para recordar la matrícula en caso de ser nuevo
+  let matriculaActual = ""; 
 
   async function seleccionarRol(rol) {
     if (rol === 'estudiante') {
@@ -747,6 +744,14 @@
       
       matriculaActual = matricula.trim();
 
+      // ¡NUEVO!: MOSTRAMOS LA PANTALLA DE CARGA MIENTRAS GOOGLE RESPONDE
+      const loader = document.getElementById('loaderScreen');
+      if (loader) {
+        const loadingText = loader.querySelector('h2');
+        if (loadingText) loadingText.textContent = "Buscando tu expediente en las estrellas... ✨";
+        loader.style.display = 'flex';
+      }
+
       try {
         const response = await fetch(GAS_API_URL, {
           method: 'POST',
@@ -754,6 +759,9 @@
           body: JSON.stringify({ action: 'loginEstudiante', codigo: matriculaActual })
         });
         const data = await response.json();
+
+        // ¡NUEVO!: OCULTAMOS LA PANTALLA DE CARGA CUANDO GOOGLE TERMINA
+        if (loader) loader.style.display = 'none';
 
         // Cambiamos la pantalla visualmente al mapa
         document.getElementById('roleSelectScene').classList.remove('active-scene');
@@ -764,22 +772,18 @@
 
         // 2. LÓGICA DE INMERSIÓN RPG (EL MAGO)
         if (data.status === 'requiere_nombre' || (data.status === 'success' && !data.usuario.nombre)) {
-           // Es nuevo: Abrimos el modal del Mago pidiendo el nombre
            const modalReg = document.getElementById('modalRegistroNombre');
            if (modalReg) {
              modalReg.style.display = 'flex';
              modalReg.classList.add('open');
            }
         } else if (data.status === 'success') {
-           // Ya existe: Cargamos sus datos
            const nombreFinal = data.usuario.nombre;
            localStorage.setItem('studentName', nombreFinal);
            
-           // Reflejamos el nombre en el HUD
            const nombreDisplay = document.getElementById('playerNameDisplay');
            if (nombreDisplay) nombreDisplay.textContent = nombreFinal;
            
-           // Cargamos puntos
            if (data.userProgress) {
                state.missionsDone = { ...state.missionsDone, ...data.userProgress };
                state.points = Object.keys(state.missionsDone).length; 
@@ -787,7 +791,6 @@
            const ptsVal = document.getElementById('pointsValue');
            if (ptsVal) ptsVal.textContent = state.points; 
 
-           // El Mago te da la bienvenida por tu nombre
            const msgWelcome = document.getElementById('rpgWelcomeMessage');
            if (msgWelcome) {
              msgWelcome.textContent = `¡Qué alegría verte de nuevo, ${nombreFinal}! Los reinos de Dream Land aguardan por ti.`;
@@ -801,6 +804,7 @@
 
       } catch (error) {
         console.error("Error de conexión:", error);
+        if (loader) loader.style.display = 'none'; // También la ocultamos si hay error
         alert("Hubo un problema conectando con la base de datos.");
       } finally {
         procesandoLogin = false; 
