@@ -1306,7 +1306,7 @@ async function saveProgressToSheets(missionKey) {
               <div class="act-title">${act.title || 'Actividad Interactiva'}</div>
             </div>
             <button class="btn-mission${done ? ' done' : ''}"
-              onclick="completeMission('${missionKey}','${safeTitle}','${actLink}',${done})">
+              onclick="completeMission('${missionKey}','${safeTitle}','${actLink}',${done}, this)">
               ${done ? '✓ Hecho' : 'Iniciar ➔'}
             </button>
           </div>`;
