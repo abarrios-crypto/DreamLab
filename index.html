@@ -1319,8 +1319,15 @@ async function saveProgressToSheets(missionKey) {
   }
 
 function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement){
-    // 1. SI YA ESTABA HECHA, NO HACEMOS NADA
-    if (alreadyDone) return;
+    // 1. SI LA MISIÓN YA ESTÁ COMPLETADA (ya sea desde el inicio o recién hecha)
+    if (alreadyDone || state.missionsDone[missionKey]) {
+        // Abrimos el recurso de nuevo para que puedan volver a verlo
+        if (link && link !== '#') {
+            window.open(link, '_blank');
+        }
+        // Detenemos la ejecución aquí para que no sume más estrellas ni pregunte nada
+        return; 
+    }
 
     // 2. VERIFICAMOS EN QUÉ PASO ESTAMOS USANDO UN DATO OCULTO EN EL BOTÓN
     const step = btnElement.getAttribute('data-step') || '1';
@@ -1343,9 +1350,11 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
         const confirmar = confirm(`¿Das tu palabra de honor como futuro Bio-Héroe de que has completado esta misión y estás listo para absorber una nueva Habilidad de Copia?`);
         
         if (confirmar) {
-            // ACTUALIZACIÓN VISUAL Y DE ESTRELLAS DE CRÉDITO
+            // REGISTRAMOS INMEDIATAMENTE QUE ESTÁ HECHA (Evita el spam-click)
             state.missionsDone[missionKey] = true;
-            state.points += 1; // Aunque la variable se llame 'points' en el código, visualmente serán EC
+            
+            // ACTUALIZACIÓN VISUAL Y DE ESTRELLAS DE CRÉDITO
+            state.points += 1; 
 
             // Pintamos el botón de verde de éxito
             btnElement.classList.add('done');
