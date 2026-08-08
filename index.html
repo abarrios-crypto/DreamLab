@@ -515,12 +515,17 @@
 
   <!-- HUD (Oculto en selección de rol, visible al entrar) -->
   <header id="mainHeader">
-    <div class="hud-left">
+   <div class="hud-left">
       <div class="mascot-badge" aria-hidden="true"></div>
       <div class="hud-title">
         <span class="game-name">DreamLab</span>
+        <!-- Aquí inyectaremos el nombre del jugador -->
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-accent); margin-top: 2px;">
+          🧑‍🚀 <span id="playerNameDisplay">Astronauta</span>
+        </div>
         <span class="location-badge" id="hudLocation">Mapa de Dream Land</span>
       </div>
+    </div>
     </div>
     <div class="hud-right">
       <button class="teacher-btn" onclick="requestTeacherAccess()">🔒 Zona Docente</button>
@@ -718,75 +723,87 @@
   // ============================================================
   // SELECCIÓN DE ROL
   // ============================================================
-let procesandoLogin = false; // Candado para evitar el doble clic
+// ============================================================
+  // SELECCIÓN DE ROL
+  // ============================================================
+  let procesandoLogin = false; 
+  let matriculaActual = ""; // Variable para recordar la matrícula en caso de ser nuevo
 
   async function seleccionarRol(rol) {
     if (rol === 'estudiante') {
       
-      // Si ya está cargando, ignora el segundo clic
       if (procesandoLogin) return; 
       procesandoLogin = true;
 
+      // 1. LIMPIEZA DE MEMORIA FANTASMA
+      localStorage.removeItem('studentName');
+      localStorage.removeItem('dreamlab_apodo_rpg');
+
       const matricula = prompt("🧑‍🚀 ¡Bienvenido a DreamLab!\nPor favor, ingresa tu matrícula:");
       if (!matricula || matricula.trim() === "") {
-        procesandoLogin = false; // Quitamos el candado si el alumno cancela
+        procesandoLogin = false; 
         return; 
       }
+      
+      matriculaActual = matricula.trim();
 
       try {
         const response = await fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' }, 
-          body: JSON.stringify({ 
-            action: 'loginEstudiante',
-            codigo: matricula.trim() 
-          })
+          body: JSON.stringify({ action: 'loginEstudiante', codigo: matriculaActual })
         });
         const data = await response.json();
 
-        // Si es nuevo O si por algún error en las pruebas se guardó sin nombre
-        if (data.status === 'requiere_nombre' || (data.status === 'success' && !data.usuario.nombre)) {
-           let nuevoNombre = prompt("Es tu primera vez por aquí.\n¿Cómo te gusta que te llamen? (Ej. Ana, Paco):");
-           if (!nuevoNombre) nuevoNombre = "Astronauta";
+        // Cambiamos la pantalla visualmente al mapa
+        document.getElementById('roleSelectScene').classList.remove('active-scene');
+        document.getElementById('roleSelectScene').style.display = 'none';
+        document.getElementById('mainHeader').style.display = 'flex';
+        document.getElementById('galaxyScene').classList.add('active-scene');
+        document.getElementById('galaxyScene').style.display = 'block';
 
-           const resRegistro = await fetch(GAS_API_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({ action: 'loginEstudiante', codigo: matricula.trim(), nombre: nuevoNombre })
-           });
-           const dataReg = await resRegistro.json();
-           
-           localStorage.setItem('studentName', dataReg.usuario.nombre);
-           
+        // 2. LÓGICA DE INMERSIÓN RPG (EL MAGO)
+        if (data.status === 'requiere_nombre' || (data.status === 'success' && !data.usuario.nombre)) {
+           // Es nuevo: Abrimos el modal del Mago pidiendo el nombre
+           const modalReg = document.getElementById('modalRegistroNombre');
+           if (modalReg) {
+             modalReg.style.display = 'flex';
+             modalReg.classList.add('open');
+           }
         } else if (data.status === 'success') {
-           localStorage.setItem('studentName', data.usuario.nombre);
+           // Ya existe: Cargamos sus datos
+           const nombreFinal = data.usuario.nombre;
+           localStorage.setItem('studentName', nombreFinal);
            
-           // Cargamos las estrellas
+           // Reflejamos el nombre en el HUD
+           const nombreDisplay = document.getElementById('playerNameDisplay');
+           if (nombreDisplay) nombreDisplay.textContent = nombreFinal;
+           
+           // Cargamos puntos
            if (data.userProgress) {
                state.missionsDone = { ...state.missionsDone, ...data.userProgress };
                state.points = Object.keys(state.missionsDone).length; 
            }
+           const ptsVal = document.getElementById('pointsValue');
+           if (ptsVal) ptsVal.textContent = state.points; 
+
+           // El Mago te da la bienvenida por tu nombre
+           const msgWelcome = document.getElementById('rpgWelcomeMessage');
+           if (msgWelcome) {
+             msgWelcome.textContent = `¡Qué alegría verte de nuevo, ${nombreFinal}! Los reinos de Dream Land aguardan por ti.`;
+           }
+           const modalGuide = document.getElementById('rpgGuideModal');
+           if (modalGuide) {
+             modalGuide.style.display = 'flex';
+             modalGuide.classList.add('open');
+           }
         }
-
-        // Cambiamos la pantalla visualmente
-        document.getElementById('roleSelectScene').classList.remove('active-scene');
-        document.getElementById('roleSelectScene').style.display = 'none';
-        document.getElementById('mainHeader').style.display = 'flex';
-        
-        const ptsVal = document.getElementById('pointsValue');
-        if (ptsVal) ptsVal.textContent = state.points; 
-
-        document.getElementById('galaxyScene').classList.add('active-scene');
-        document.getElementById('galaxyScene').style.display = 'block';
-
-        // ¡AQUÍ ESTÁ LA MAGIA! Despertamos al personaje para que te salude
-        iniciarFlujoRPG();
 
       } catch (error) {
         console.error("Error de conexión:", error);
         alert("Hubo un problema conectando con la base de datos.");
       } finally {
-        procesandoLogin = false; // Liberamos el candado al terminar
+        procesandoLogin = false; 
       }
 
     } else if (rol === 'docente') {
@@ -1544,45 +1561,54 @@ function completeMission(missionKey, missionTitle, link, alreadyDone){
     }
   }
 
-  // ============================================================
+// ============================================================
   // LÓGICA DE MODALES RPG Y APODO DE JUGADOR
   // ============================================================
-  function iniciarFlujoRPG() {
-    const apodoGuardado = localStorage.getItem('dreamlab_apodo_rpg');
-    const modalReg = document.getElementById('modalRegistroNombre');
-    const modalGuide = document.getElementById('rpgGuideModal');
-    const msgWelcome = document.getElementById('rpgWelcomeMessage');
-
-    if (!apodoGuardado) {
-      if (modalReg) {
-        modalReg.style.display = 'flex';
-        modalReg.classList.add('open');
-      }
-    } else {
-      if (msgWelcome) {
-        msgWelcome.textContent = `¡Qué alegría verte de nuevo, ${apodoGuardado}! Los reinos de Dream Land aguardan por ti.`;
-      }
-      if (modalGuide) {
-        modalGuide.style.display = 'flex';
-        modalGuide.classList.add('open');
-      }
-    }
-  }
-
-  function guardarApodoYEntrar() {
+  async function guardarApodoYEntrar() {
     const input = document.getElementById('inputApodoRPG');
-    const apodo = input ? input.value.trim() : '';
+    let apodo = input ? input.value.trim() : '';
 
     if (!apodo) {
       alert("¡Ingresa un apodo para poder comenzar tu aventura!");
       return;
     }
 
-    localStorage.setItem('dreamlab_apodo_rpg', apodo);
-    const modalReg = document.getElementById('modalRegistroNombre');
-    if (modalReg) {
-      modalReg.classList.remove('open');
-      modalReg.style.display = 'none';
+    // Cambiamos el texto del botón mientras guarda
+    const btn = document.querySelector('#modalRegistroNombre .rpg-btn');
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = "Guardando en los astros... ⏳";
+    btn.disabled = true;
+
+    try {
+      // Guardamos directamente en tu Google Sheets
+      const resRegistro = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'loginEstudiante', codigo: matriculaActual, nombre: apodo })
+      });
+      const dataReg = await resRegistro.json();
+      
+      const nombreFinal = dataReg.usuario.nombre || apodo;
+      
+      // Guardamos localmente para referencia futura
+      localStorage.setItem('studentName', nombreFinal);
+      
+      // Actualizamos el nombre en el HUD
+      const nombreDisplay = document.getElementById('playerNameDisplay');
+      if (nombreDisplay) nombreDisplay.textContent = nombreFinal;
+
+      // Cerramos el modal
+      const modalReg = document.getElementById('modalRegistroNombre');
+      if (modalReg) {
+        modalReg.classList.remove('open');
+        modalReg.style.display = 'none';
+      }
+    } catch (error) {
+       console.error("Error al guardar nombre:", error);
+       alert("Los astros no están alineados. Hubo un error al guardar tu nombre.");
+    } finally {
+       btn.innerHTML = textoOriginal;
+       btn.disabled = false;
     }
   }
 
