@@ -1084,28 +1084,44 @@ function requestTeacherAccess() {
     }
   }
 
-async function guardarprogresomision(missionKey) {
-  const currentStudent = localStorage.getItem('studentName') || 'usuario_desconocido'; 
-  
+async function guardarProgresoMision(missionKey) {
+  const matriculaActual = localStorage.getItem('studentMatricula') || localStorage.getItem('studentId') || localStorage.getItem('matricula');
+  const nombreEstudiante = localStorage.getItem('studentName') || localStorage.getItem('nombre') || 'Estudiante';
+
+  if (!matriculaActual) {
+    console.warn('No se encontró la matrícula en localStorage.');
+    return;
+  }
+
+  // ⚠️ REEMPLAZA ESTA URL CON LA DE TU GOOGLE APPS SCRIPT
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO8vldG4js80AHoi5P37TGZ7dPDT2r-hNNZKHIl2cJujlFyQ18FmHzutfHRXNv-MO4/exec';
+
   const payload = {
     action: 'saveProgress',
-    usuario_id: currentStudent,
-    mission_key: missionKey,
-    completado: true
+    usuario_id: matriculaActual,
+    nickname: nombreEstudiante,
+    mission_key: missionKey
   };
 
   try {
-    await fetch(GAS_API_URL, {
+    const response = await fetch(SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors', 
+      mode: 'cors',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/plain;charset=utf-8',
       },
       body: JSON.stringify(payload)
     });
-    console.log("☁️✅ Progreso guardado en Google Sheets:", missionKey);
+    
+    const result = await response.json();
+    
+    if (result.status === 'success' || result.success) {
+      console.log(`✅ Misión '${missionKey}' guardada (${matriculaActual}).`);
+    } else {
+      console.warn('⚠️ La API respondió pero no confirmó el guardado:', result);
+    }
   } catch (error) {
-    console.error("☁️❌ Error al guardar en la nube:", error);
+    console.error('❌ Error al guardar el progreso:', error);
   }
 }
   // ============================================================
@@ -1695,65 +1711,11 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
     });
   }
 
-  <!-- ... todo tu JavaScript anterior ... -->
-
-    <!-- ✅ PEGAR AQUÍ (Justo antes de </script>): -->
-    async function guardarProgresoMision(missionKey) {
-      // Intentamos obtener la matrícula con los nombres más comunes de localStorage
-      const matriculaActual = localStorage.getItem('studentMatricula') 
-                          || localStorage.getItem('studentId') 
-                          || localStorage.getItem('matricula');
-                          
-      const nombreEstudiante = localStorage.getItem('studentName') 
-                           || localStorage.getItem('nombre') 
-                           || 'Estudiante';
-
-      if (!matriculaActual) {
-        console.error('No se encontró la matrícula del estudiante en localStorage.');
-        return;
-      }
-
-      // ⚠️ REEMPLAZA ESTA URL CON LA DE TU GOOGLE APPS SCRIPT
-      const SCRIPT_URL = 'https://script.google.com/macros/s/TU_SCRIPT_ID/exec';
-
-      const payload = {
-        action: 'saveProgress',
-        usuario_id: matriculaActual, // Se registra en la Columna A (ID)
-        nickname: nombreEstudiante,   // Se registra en la Columna B (Nombre)
-        mission_key: missionKey       // Identificador de la misión ganada
-      };
-
-      try {
-        const response = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'cors',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8',
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (result.status === 'success' || result.success) {
-          console.log(`✅ Misión '${missionKey}' guardada con éxito para ${nombreEstudiante} (${matriculaActual}).`);
-        } else {
-          console.warn('⚠️ La API respondió pero no confirmó el guardado:', result);
-        }
-      } catch (error) {
-        console.error('❌ Error de red al guardar el progreso:', error);
-      }
-    }
-    <!-- ✅ FIN DEL BLOQUE CREADO -->
-
-  </script>
-</body>
-</html>
-  
 </script>
 
 <footer class="main-footer">
   Diseñado y Desarrollado con 💖 por la <strong>Mtra. Adriana A. Barrios Rodríguez • UAS</strong>
 </footer>
+
 </body>
 </html>
