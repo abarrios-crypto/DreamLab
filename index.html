@@ -1151,14 +1151,37 @@ function descargarPDF() {
 
   doc.setFont('helvetica', 'normal');
   const disclaimer = "El estudiante declara estar consciente de que este documento será cotejado con las actividades " +
-    "registradas durante el semestre como completadas en sus respectivos apartados (Moodle, GradingPal y otros) y " +
-    "que si se encuentran irregularidades, renuncia a todas sus estrellas de crédito obtenidas.";
+"registradas durante el semestre como completadas en sus respectivos apartados (Moodle, GradingPal y otros) y " +
+"que si se encuentran irregularidades como actividades marcadas como hechas pero que no corresponden en el listado oficial, " +
+"renuncia a todas sus estrellas de crédito obtenidas en el semestre tanto las de misiones como las generadas por otros " +
+"sistemas por considerarse una infracción a la ética de la clase.";
+
+  
 
   const textLines = doc.splitTextToSize(disclaimer, 180);
   doc.text(textLines, 14, finalY + 5);
 
   doc.setFont('helvetica', 'bold');
-  doc.text(`Firma / Conformidad: ${nombreEstudiante}`, 14, finalY + 20);
+  // 1. Definir la posición base de la firma
+const xFirma = 14;
+const yFirma = finalY + 20;
+
+// 2. Dibujar la línea de firma estática
+doc.text("Firma / Conformidad: ______________________", xFirma, yFirma);
+
+// 3. Calcular la longitud de la línea para centrar el nombre
+const anchoEtiqueta = doc.getTextWidth("Firma / Conformidad: ");
+const anchoLinea = doc.getTextWidth("______________________");
+const centroDeLinea = xFirma + anchoEtiqueta + (anchoLinea / 2);
+
+// 4. Calcular el ancho del nombre actual del estudiante
+const anchoNombre = doc.getTextWidth(nombreEstudiante);
+
+// 5. Restar la mitad del ancho del nombre para que quede centrado matemáticamente
+const xNombreCentrado = centroDeLinea - (anchoNombre / 2);
+
+// 6. Dibujar el nombre en la posición calculada (6 puntos más abajo)
+doc.text(nombreEstudiante, xNombreCentrado, yFirma + 6);
 
   // 6. Descarga del archivo PDF
   doc.save(`Historial_DreamLab_${matricula}.pdf`);
