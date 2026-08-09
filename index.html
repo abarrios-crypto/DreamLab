@@ -746,8 +746,7 @@
       </div>
 
       <div style="flex-grow: 1; overflow-y: auto; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fafafa;">
-        <!-- CONTENEDOR QUE SE IMPRIMIRÁ EN EL PDF -->
-        <div id="pdfContentToPrint" class="pdf-container">
+  <div id="pdfContentToPrint" class="pdf-container">
           <div class="pdf-header">
             <div>
               <div class="pdf-title">DreamLab · Historial Académico</div>
@@ -1077,43 +1076,54 @@
     }
   }
 
-  function descargarPDF() {
-  const originalElement = document.getElementById('pdfContentToPrint');
+  async function descargarPDF() {
+  const element = document.getElementById('pdfContentToPrint');
   const matricula = localStorage.getItem('studentMatricula') || 'Estudiante';
+  
+  // Obtener el botón que ejecutó el evento para dar feedback visual
+  const btn = event ? (event.currentTarget || event.target) : null;
+  const originalText = btn ? btn.innerHTML : '';
 
-  // 1. Clonar el contenedor para aislarlo de los límites y scrollbars del modal
-  const clone = originalElement.cloneNode(true);
-  clone.style.width = '750px'; // Ancho de trabajo estandarizado
-  clone.style.position = 'absolute';
-  clone.style.left = '-9999px';
-  clone.style.top = '0';
-  clone.style.height = 'auto';
-  clone.style.maxHeight = 'none';
-  clone.style.overflow = 'visible';
-  document.body.appendChild(clone);
+  if (!element) {
+    alert("No se encontró el contenido para exportar a PDF.");
+    return;
+  }
 
-  // 2. Configurar html2pdf con reglas explícitas de salto de página
+  // 1. Mostrar estado de carga en el botón
+  if (btn) {
+    btn.innerHTML = '⏳ Generando documento PDF...';
+    btn.disabled = true;
+  }
+
+  // 2. Opciones optimizadas de html2pdf y html2canvas
   const opt = {
-    margin:       [0.5, 0.4, 0.5, 0.4], // Margen: arriba, izquierda, abajo, derecha (pulgadas)
+    margin:       [0.3, 0.3, 0.3, 0.3],
     filename:     `Historial_DreamLab_${matricula}.pdf`,
     image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+    html2canvas:  { 
+      scale: 2, 
+      useCORS: true, 
+      logging: false,
+      scrollY: 0, // Solución crítica: resetea el scroll para evitar hojas en blanco o cortes
+      scrollX: 0,
+      windowWidth: element.scrollWidth
+    },
     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-    pagebreak:    { 
-      mode: ['css', 'legacy'], 
-      avoid: ['.pdf-disclaimer', '.pdf-signature-line', '.pdf-meta-table', 'tr'] 
-    }
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
   };
 
-  // 3. Generar el PDF y limpiar el clon
-  html2pdf().set(opt).from(clone).save().then(() => {
-    document.body.removeChild(clone);
-  }).catch(err => {
-    console.error("Error al generar PDF:", err);
-    if (document.body.contains(clone)) {
-      document.body.removeChild(clone);
+  // 3. Ejecución asíncrona con control de errores
+  try {
+    await html2pdf().set(opt).from(element).save();
+  } catch (error) {
+    console.error("Error al generar el PDF:", error);
+    alert("Hubo un problema al generar el PDF. Inténtalo de nuevo o revisa los permisos del navegador.");
+  } finally {
+    if (btn) {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
     }
-  });
+  }
 }
 
   // ============================================================
