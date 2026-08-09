@@ -496,55 +496,77 @@
   }
   .rpg-btn:hover { background: #4338ca; }
 
-  /* ESTILOS PARA LA IMPRESIÓN / VISTA PREVIA DEL REPORTE PDF */
-  .pdf-container {
-    background: #ffffff;
-    color: #1e293b;
-    padding: 30px;
-    font-family: 'Quicksand', Arial, sans-serif;
-    border: 2px solid #cbd5e1;
-    border-radius: 8px;
-    text-align: left;
-    line-height: 1.5;
-  }
-  .pdf-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 3px double #4fb8e8;
-    padding-bottom: 12px;
-    margin-bottom: 20px;
-  }
-  .pdf-title { font-family: 'Baloo 2', sans-serif; font-size: 1.4rem; color: #4a3b63; font-weight: 800; }
-  .pdf-subtitle { font-size: 0.85rem; color: #64748b; font-weight: 700; }
-  .pdf-meta-table {
-    width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem;
-    page-break-inside: avoid !important; break-inside: avoid !important;
-  }
-  .pdf-meta-table td { padding: 6px 10px; border: 1px solid #e2e8f0; }
-  .pdf-meta-table td.label { background: #f8fafc; font-weight: bold; width: 30%; color: #334155; }
-  .pdf-activities-title {
-    font-family: 'Baloo 2', sans-serif; font-size: 1.1rem; color: #b23d6d;
-    margin: 15px 0 8px; border-bottom: 2px solid #f1f5f9; padding-bottom: 4px;
-  }
-  .pdf-act-list {
-    width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.82rem;
-  }
-  .pdf-act-list th, .pdf-act-list td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
-  .pdf-act-list th { background: #f1f5f9; font-weight: bold; color: #1e293b; }
-  .pdf-act-list tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-  .pdf-act-list tr:nth-child(even) { background: #f8fafc; }
-  .pdf-disclaimer {
-    background: #fff1f2; border: 2px solid #fecdd3; border-radius: 8px; padding: 12px;
-    font-size: 0.78rem; color: #881337; margin-top: 20px; text-align: justify;
-    page-break-inside: avoid !important; break-inside: avoid !important;
-  }
-  .pdf-disclaimer strong { color: #9f1239; }
-  .pdf-signature-line {
-    margin-top: 35px; display: flex; justify-content: space-around; text-align: center; font-size: 0.85rem;
-    page-break-inside: avoid !important; break-inside: avoid !important;
-  }
-  .pdf-signature-box { border-top: 1px solid #475569; width: 220px; padding-top: 6px; }
+  /* Configuración de página general para impresión */
+@page {
+  size: letter;
+  margin: 12mm 15mm 12mm 15mm;
+}
+
+/* ESTILOS PARA EL REPORTE PDF */
+.pdf-container {
+  background: #ffffff;
+  color: #1e293b;
+  padding: 30px;
+  font-family: 'Quicksand', Arial, sans-serif;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  text-align: left;
+  line-height: 1.5;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Reglas estrictas para evitar que firmas, tablas o leyendas se corten a la mitad */
+.pdf-meta-table,
+.pdf-disclaimer,
+.pdf-signature-line,
+.pdf-act-list tr {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.pdf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px double #4fb8e8;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.pdf-title { font-family: 'Baloo 2', sans-serif; font-size: 1.4rem; color: #4a3b63; font-weight: 800; }
+.pdf-subtitle { font-size: 0.85rem; color: #64748b; font-weight: 700; }
+
+.pdf-meta-table {
+  width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem;
+}
+.pdf-meta-table td { padding: 6px 10px; border: 1px solid #e2e8f0; }
+.pdf-meta-table td.label { background: #f8fafc; font-weight: bold; width: 30%; color: #334155; }
+
+.pdf-activities-title {
+  font-family: 'Baloo 2', sans-serif; font-size: 1.1rem; color: #b23d6d;
+  margin: 15px 0 8px; border-bottom: 2px solid #f1f5f9; padding-bottom: 4px;
+}
+
+.pdf-act-list {
+  width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.82rem;
+}
+.pdf-act-list th, .pdf-act-list td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+.pdf-act-list th { background: #f1f5f9; font-weight: bold; color: #1e293b; }
+.pdf-act-list tr:nth-child(even) { background: #f8fafc; }
+
+.pdf-disclaimer {
+  background: #fff1f2; border: 2px solid #fecdd3; border-radius: 8px; padding: 12px;
+  font-size: 0.78rem; color: #881337; margin-top: 20px; text-align: justify;
+}
+.pdf-disclaimer strong { color: #9f1239; }
+
+.pdf-signature-line {
+  margin-top: 35px; display: flex; justify-content: space-around; text-align: center; font-size: 0.85rem;
+}
+.pdf-signature-box { border-top: 1px solid #475569; width: 220px; padding-top: 6px; }
+
 </style>
 </head>
 <body>
@@ -1056,20 +1078,43 @@
   }
 
   function descargarPDF() {
-    const element = document.getElementById('pdfContentToPrint');
-    const matricula = localStorage.getItem('studentMatricula') || 'Estudiante';
-    
-    const opt = {
-      margin:       [0.4, 0.4, 0.4, 0.4],
-      filename:     `Historial_DreamLab_${matricula}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-      pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-    };
+  const originalElement = document.getElementById('pdfContentToPrint');
+  const matricula = localStorage.getItem('studentMatricula') || 'Estudiante';
 
-    html2pdf().set(opt).from(element).save();
-  }
+  // 1. Clonar el contenedor para aislarlo de los límites y scrollbars del modal
+  const clone = originalElement.cloneNode(true);
+  clone.style.width = '750px'; // Ancho de trabajo estandarizado
+  clone.style.position = 'absolute';
+  clone.style.left = '-9999px';
+  clone.style.top = '0';
+  clone.style.height = 'auto';
+  clone.style.maxHeight = 'none';
+  clone.style.overflow = 'visible';
+  document.body.appendChild(clone);
+
+  // 2. Configurar html2pdf con reglas explícitas de salto de página
+  const opt = {
+    margin:       [0.5, 0.4, 0.5, 0.4], // Margen: arriba, izquierda, abajo, derecha (pulgadas)
+    filename:     `Historial_DreamLab_${matricula}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+    pagebreak:    { 
+      mode: ['css', 'legacy'], 
+      avoid: ['.pdf-disclaimer', '.pdf-signature-line', '.pdf-meta-table', 'tr'] 
+    }
+  };
+
+  // 3. Generar el PDF y limpiar el clon
+  html2pdf().set(opt).from(clone).save().then(() => {
+    document.body.removeChild(clone);
+  }).catch(err => {
+    console.error("Error al generar PDF:", err);
+    if (document.body.contains(clone)) {
+      document.body.removeChild(clone);
+    }
+  });
+}
 
   // ============================================================
   // ZONA DOCENTE
