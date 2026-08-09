@@ -783,7 +783,9 @@
            
            const nombreDisplay = document.getElementById('playerNameDisplay');
            if (nombreDisplay) nombreDisplay.textContent = nombreFinal;
-           
+
+          state.missionsDone = {};
+          
            // 1. Inyectar el historial de misiones que viene de Google Sheets
            // Compatible con arreglo de misiones o el objeto userProgress original
            if (data.misiones && Array.isArray(data.misiones)) {
@@ -833,14 +835,35 @@
   }
 
   function volverASeleccionRol() {
-    document.querySelectorAll('.scene').forEach(sc => {
-      sc.classList.remove('active-scene');
-      sc.style.display = 'none';
-    });
-    document.getElementById('mainHeader').style.display = 'none';
-    document.getElementById('roleSelectScene').classList.add('active-scene');
-    document.getElementById('roleSelectScene').style.display = 'block';
-  }
+  // 1. LIMPIAR EL ESTADO GLOBAL DE JUEGO (Solución al bug de misiones cargadas)
+  state.points = 0;
+  state.currentWorldKey = null;
+  state.currentIslandIndex = 0;
+  state.visited = {};
+  state.missionsDone = {};
+  state.pendingLink = null;
+  matriculaActual = "";
+
+  // 2. LIMPIAR EL ALMACENAMIENTO DEL NAVEGADOR
+  localStorage.removeItem('studentName');
+  localStorage.removeItem('dreamlab_apodo_rpg');
+
+  // 3. RESETEAR LOS CONTADORES VISUALES (Puntos y Sellos)
+  const ptsVal = document.getElementById('pointsValue');
+  if (ptsVal) ptsVal.textContent = "0";
+  
+  const stampFrac = document.getElementById('stampFraction');
+  if (stampFrac) stampFrac.textContent = "0/0";
+
+  // 4. OCULTAR PANTALLAS (Tu lógica original)
+  document.querySelectorAll('.scene').forEach(sc => {
+    sc.classList.remove('active-scene');
+    sc.style.display = 'none';
+  });
+  document.getElementById('mainHeader').style.display = 'none';
+  document.getElementById('roleSelectScene').classList.add('active-scene');
+  document.getElementById('roleSelectScene').style.display = 'block';
+}
 
   // ============================================================
   // ZONA DOCENTE
