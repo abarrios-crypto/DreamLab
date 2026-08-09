@@ -1077,25 +1077,55 @@
   }
 
   async function descargarPDF() {
-  const element = document.getElementById('pdfContentToPrint');
-  const matricula = localStorage.getItem('studentMatricula') || 'Estudiante';
-  
-  // Obtener el botón que ejecutó el evento para dar feedback visual
-  const btn = event ? (event.currentTarget || event.target) : null;
-  const originalText = btn ? btn.innerHTML : '';
-
-  if (!element) {
-    alert("No se encontró el contenido para exportar a PDF.");
+  const originalElement = document.getElementById('pdfContentToPrint');
+  if (!originalElement) {
+    alert("No se encontró el contenido a exportar.");
     return;
   }
 
-  // 1. Mostrar estado de carga en el botón
+  const matricula = localStorage.getItem('studentMatricula') || 'Estudiante';
+  const btn = event ? (event.currentTarget || event.target) : null;
+  const originalText = btn ? btn.innerHTML : '';
+
   if (btn) {
-    btn.innerHTML = '⏳ Generando documento PDF...';
+    btn.innerHTML = '⏳ Generando PDF...';
     btn.disabled = true;
   }
 
-  // 2. Opciones optimizadas de html2pdf y html2canvas
+  // 1. Crear un contenedor temporal fuera de pantalla con ANCHO FIJO
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '-9999px';
+  wrapper.style.top = '0';
+  wrapper.style.width = '750px'; // Ancho exacto para evitar recortes
+  wrapper.style.backgroundColor = '#ffffff';
+
+const style = document.createElement('style');
+  style.innerHTML = `
+    #pdfContentToPrint tr,
+    #pdfContentToPrint table,
+    #pdfContentToPrint .signature-section,
+    #pdfContentToPrint [style*="border"],
+    #pdfContentToPrint div {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    #pdfContentToPrint * {
+      box-sizing: border-box !important;
+      word-wrap: break-word;
+    }
+  `;
+  wrapper.appendChild(style);
+  
+  // 2. Clonar el contenido dentro del contenedor estático
+  const clone = originalElement.cloneNode(true);
+  clone.style.width = '100%';
+  clone.style.margin = '0';
+  clone.style.padding = '20px';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  // 3. Opciones de exportación
   const opt = {
     margin:       [0.3, 0.3, 0.3, 0.3],
     filename:     `Historial_DreamLab_${matricula}.pdf`,
@@ -1104,21 +1134,23 @@
       scale: 2, 
       useCORS: true, 
       logging: false,
-      scrollY: 0, // Solución crítica: resetea el scroll para evitar hojas en blanco o cortes
       scrollX: 0,
-      windowWidth: element.scrollWidth
+      scrollY: 0,
+      windowWidth: 750 // Fuerza al renderizador a usar la vista fija
     },
     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+    pagebreak:    { mode: ['css', 'legacy'] }
   };
 
-  // 3. Ejecución asíncrona con control de errores
+  // 4. Generar y limpiar
   try {
-    await html2pdf().set(opt).from(element).save();
+    await html2pdf().set(opt).from(clone).save();
   } catch (error) {
     console.error("Error al generar el PDF:", error);
-    alert("Hubo un problema al generar el PDF. Inténtalo de nuevo o revisa los permisos del navegador.");
+    alert("Ocurrió un error al generar el PDF.");
   } finally {
+    // Eliminar el clon temporal del DOM
+    document.body.removeChild(wrapper);
     if (btn) {
       btn.innerHTML = originalText;
       btn.disabled = false;
