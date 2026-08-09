@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 
+<!-- Librería para generación de PDF en el navegador -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <style>
   /* ============================================================
      1. VARIABLES DE DISEÑO — Paleta "Dream Land"
@@ -492,6 +495,52 @@
     font-weight: bold; cursor: pointer; transition: background 0.2s; width: 100%;
   }
   .rpg-btn:hover { background: #4338ca; }
+
+  /* ESTILOS PARA LA IMPRESIÓN / VISTA PREVIA DEL REPORTE PDF */
+  .pdf-container {
+    background: #ffffff;
+    color: #1e293b;
+    padding: 30px;
+    font-family: 'Quicksand', Arial, sans-serif;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    text-align: left;
+    line-height: 1.5;
+  }
+  .pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px double #4fb8e8;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  .pdf-title { font-family: 'Baloo 2', sans-serif; font-size: 1.4rem; color: #4a3b63; font-weight: 800; }
+  .pdf-subtitle { font-size: 0.85rem; color: #64748b; font-weight: 700; }
+  .pdf-meta-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem;
+  }
+  .pdf-meta-table td { padding: 6px 10px; border: 1px solid #e2e8f0; }
+  .pdf-meta-table td.label { background: #f8fafc; font-weight: bold; width: 30%; color: #334155; }
+  .pdf-activities-title {
+    font-family: 'Baloo 2', sans-serif; font-size: 1.1rem; color: #b23d6d;
+    margin: 15px 0 8px; border-bottom: 2px solid #f1f5f9; padding-bottom: 4px;
+  }
+  .pdf-act-list {
+    width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.82rem;
+  }
+  .pdf-act-list th, .pdf-act-list td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+  .pdf-act-list th { background: #f1f5f9; font-weight: bold; color: #1e293b; }
+  .pdf-act-list tr:nth-child(even) { background: #f8fafc; }
+  .pdf-disclaimer {
+    background: #fff1f2; border: 2px solid #fecdd3; border-radius: 8px; padding: 12px;
+    font-size: 0.78rem; color: #881337; margin-top: 20px; text-align: justify;
+  }
+  .pdf-disclaimer strong { color: #9f1239; }
+  .pdf-signature-line {
+    margin-top: 40px; display: flex; justify-content: space-around; text-align: center; font-size: 0.85rem;
+  }
+  .pdf-signature-box { border-top: 1px solid #475569; width: 200px; paddingTop: 6px; }
 </style>
 </head>
 <body>
@@ -524,6 +573,7 @@
       </div>
     </div>
     <div class="hud-right">
+      <button class="stamp-pill" id="pdfReportBtn" style="display:none; background:#4f46e5; color:#fff; border-color:#3730a3;" onclick="abrirModalReportePDF()">📜 Reporte PDF</button>
       <button class="teacher-btn" onclick="requestTeacherAccess()">🔒 Zona Docente</button>
       <div class="stamp-pill" id="stampPill" onclick="openStampSheet()">📖 <span id="stampFraction">0/0</span></div>
       <div class="points-pill" id="pointsPill"><span>⭐</span><span id="pointsValue">0</span></div>
@@ -657,6 +707,81 @@
       <div id="teacherActivitiesContent" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;"></div>
     </div>
   </div>
+
+  <!-- MODAL REPORTE PDF DE HISTORIAL ACADÉMICO -->
+  <div class="modal-overlay" id="pdfModal">
+    <div class="stamp-card" style="max-width: 680px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+      <button class="modal-close-btn" onclick="cerrarModalReportePDF()" aria-label="Cerrar">✕</button>
+      <h3 style="margin-bottom: 10px;">📜 Generador de Historial y PDF</h3>
+      
+      <div style="margin-bottom: 12px; text-align: left; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <label style="font-size: 0.8rem; font-weight: bold; color: var(--ink);">Nombre Completo del Estudiante (Verifica antes de generar):</label>
+        <input type="text" id="pdfNombreCompletoInput" class="rpg-input" style="margin-top: 4px; margin-bottom: 0; background:#fff; color:#000; border:1px solid #cbd5e1;">
+      </div>
+
+      <div style="flex-grow: 1; overflow-y: auto; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fafafa;">
+        <!-- CONTENEDOR QUE SE IMPRIMIRÁ EN EL PDF -->
+        <div id="pdfContentToPrint" class="pdf-container">
+          <div class="pdf-header">
+            <div>
+              <div class="pdf-title">DreamLab · Historial Académico</div>
+              <div class="pdf-subtitle">Reporte de Cotejo de Actividades y Estrellas</div>
+            </div>
+            <div style="text-align: right; font-size: 0.75rem; color: #64748b;">
+              Fecha: <span id="pdfFechaGeneracion">--</span>
+            </div>
+          </div>
+
+          <table class="pdf-meta-table">
+            <tr>
+              <td class="label">Matrícula:</td>
+              <td id="pdfMatriculaVal">--</td>
+            </tr>
+            <tr>
+              <td class="label">Nombre Estudiante:</td>
+              <td id="pdfNombreVal">--</td>
+            </tr>
+            <tr>
+              <td class="label">Total Estrellas Ganadas:</td>
+              <td><strong id="pdfEstrellasVal" style="color: #d97706; font-size: 1.1rem;">0 ⭐</strong></td>
+            </tr>
+          </table>
+
+          <div class="pdf-activities-title">📋 Registro de Actividades Marca como Completadas</div>
+          
+          <table class="pdf-act-list">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Mundo</th>
+                <th style="width: 25%;">Domo / Unidad</th>
+                <th>Actividad</th>
+                <th style="width: 15%; text-align:center;">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="pdfActividadesTbody">
+              <!-- Se llena dinámicamente -->
+            </tbody>
+          </table>
+
+          <div class="pdf-disclaimer">
+            <strong>DECLARACIÓN DE INTEGRIDAD Y ÉTICA ACADÉMICA:</strong><br>
+            El estudiante declara estar consciente de que este documento será cotejado con las actividades registradas durante el semestre como completadas en sus respectivos apartados (Moodle, GradingPal y otros) y que si se encuentran irregularidades como actividades marcadas como hechas pero que no corresponden en el listado oficial, renuncia a todas sus estrellas de crédito obtenidas en el semestre tanto las de misiones como las generadas por otros sistemas por considerarse una infracción a la ética de la clase.
+          </div>
+
+          <div class="pdf-signature-line">
+            <div class="pdf-signature-box">
+              Firma o Conformidad del Estudiante<br>
+              <small id="pdfFirmaNombre">--</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-continue" onclick="descargarPDF()" style="background:#059669; color:#fff; box-shadow:0 4px 0 #047857;">
+        📥 Descargar Documento PDF
+      </button>
+    </div>
+  </div>
   
   <!-- MODAL 1: REGISTRO DE APODO RPG -->
   <div id="modalRegistroNombre" class="modal-overlay">
@@ -665,7 +790,7 @@
       <div class="rpg-dialog-content">
         <h4 class="rpg-character-title">Guía de la Aventura</h4>
         <p class="rpg-dialog-text">¡Saludos, Bio-aprendiz! Veo que es tu primera vez por aquí. ¿Cómo te gustaría ser llamado en esta aventura?</p>
-        <input type="text" id="inputApodoRPG" placeholder="Escribe tu apodo RPG..." class="rpg-input">
+        <input type="text" id="inputApodoRPG" placeholder="Escribe tu apodo o nombre completo..." class="rpg-input">
         <button class="rpg-btn" onclick="guardarApodoYEntrar()">¡Comenzar Aventura! ⚔️</button>
       </div>
     </div>
@@ -751,6 +876,7 @@
         document.getElementById('roleSelectScene').classList.remove('active-scene');
         document.getElementById('roleSelectScene').style.display = 'none';
         document.getElementById('mainHeader').style.display = 'flex';
+        document.getElementById('pdfReportBtn').style.display = 'flex'; // Mostrar botón de PDF para estudiante
         document.getElementById('galaxyScene').classList.add('active-scene');
         document.getElementById('galaxyScene').style.display = 'block';
 
@@ -806,6 +932,7 @@
       document.getElementById('roleSelectScene').classList.remove('active-scene');
       document.getElementById('roleSelectScene').style.display = 'none';
       document.getElementById('mainHeader').style.display = 'flex';
+      document.getElementById('pdfReportBtn').style.display = 'none';
       
       document.getElementById('galaxyScene').classList.add('active-scene');
       document.getElementById('galaxyScene').style.display = 'block';
@@ -837,8 +964,105 @@
       sc.style.display = 'none';
     });
     document.getElementById('mainHeader').style.display = 'none';
+    document.getElementById('pdfReportBtn').style.display = 'none';
     document.getElementById('roleSelectScene').classList.add('active-scene');
     document.getElementById('roleSelectScene').style.display = 'block';
+  }
+
+  // ============================================================
+  // GENERACIÓN DE REPORTE HISTORIAL EN PDF
+  // ============================================================
+  function abrirModalReportePDF() {
+    closeAllModals();
+
+    const matriculaDoc = localStorage.getItem('studentMatricula') || matriculaActual || 'N/A';
+    const nombreDoc = localStorage.getItem('studentName') || 'Estudiante';
+
+    document.getElementById('pdfMatriculaVal').textContent = matriculaDoc;
+    document.getElementById('pdfNombreVal').textContent = nombreDoc;
+    document.getElementById('pdfFirmaNombre').textContent = nombreDoc;
+    document.getElementById('pdfNombreCompletoInput').value = nombreDoc;
+    document.getElementById('pdfEstrellasVal').textContent = `${state.points} ⭐`;
+    document.getElementById('pdfFechaGeneracion').textContent = new Date().toLocaleDateString('es-MX', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    // Actualizar nombre dinámicamente si lo editan en el input
+    document.getElementById('pdfNombreCompletoInput').oninput = function() {
+      const val = this.value.trim() || 'Estudiante';
+      document.getElementById('pdfNombreVal').textContent = val;
+      document.getElementById('pdfFirmaNombre').textContent = val;
+    };
+
+    // Construir tabla de actividades
+    const tbody = document.getElementById('pdfActividadesTbody');
+    tbody.innerHTML = '';
+
+    let totalFilas = 0;
+
+    Object.entries(worldsData).forEach(([worldKey, world]) => {
+      const worldName = world.name || world.title || `Mundo ${worldKey}`;
+      
+      if (world.islands) {
+        world.islands.forEach((isl, islandIdx) => {
+          const rawUnitId = isl.unitId || isl.id || (islandIdx + 1);
+          const islandTitle = isl.title || isl.name || `Domo ${rawUnitId}`;
+          const topicsData = getUnitTopics(worldKey, rawUnitId, islandIdx);
+
+          topicsData.topics.forEach((topic, topicIdx) => {
+            (topic.activities || []).forEach((act, actIdx) => {
+              const missionKey = `${worldKey}-${rawUnitId}-${topicIdx}-${actIdx}`;
+              const isCompleted = !!state.missionsDone[missionKey];
+
+              totalFilas++;
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td><strong>${worldName}</strong></td>
+                <td>${islandTitle}</td>
+                <td>${act.title || 'Actividad'}</td>
+                <td style="text-align:center;">
+                  ${isCompleted ? '<span style="color:#059669; font-weight:bold;">✓ COMPLETADO</span>' : '<span style="color:#94a3b8;">— Pendiente</span>'}
+                </td>
+              `;
+              tbody.appendChild(tr);
+            });
+          });
+        });
+      }
+    });
+
+    if (totalFilas === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">No se encontraron actividades registradas.</td></tr>`;
+    }
+
+    const pdfModal = document.getElementById('pdfModal');
+    if (pdfModal) {
+      pdfModal.style.display = 'flex';
+      pdfModal.classList.add('open');
+    }
+  }
+
+  function cerrarModalReportePDF() {
+    const pdfModal = document.getElementById('pdfModal');
+    if (pdfModal) {
+      pdfModal.classList.remove('open');
+      pdfModal.style.display = 'none';
+    }
+  }
+
+  function descargarPDF() {
+    const element = document.getElementById('pdfContentToPrint');
+    const matricula = localStorage.getItem('studentMatricula') || 'Estudiante';
+    
+    const opt = {
+      margin:       [0.4, 0.4, 0.4, 0.4],
+      filename:     `Historial_DreamLab_${matricula}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
   }
 
   // ============================================================
@@ -1608,7 +1832,7 @@
     let apodo = input ? input.value.trim() : '';
 
     if (!apodo) {
-      alert("¡Ingresa un Nombre de Bio-Aprendiz para poder comenzar tu aventura!");
+      alert("¡Ingresa tu nombre o apodo para poder comenzar tu aventura!");
       return;
     }
 
