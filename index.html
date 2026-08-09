@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 
-<!-- Librería para generación de PDF en el navegador -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 <style>
   /* ============================================================
@@ -1076,106 +1076,95 @@
     }
   }
 
-async function descargarPDF() {
-  const originalElement = document.getElementById('pdfContentToPrint');
-  if (!originalElement) {
-    alert("No se encontró el contenido a exportar.");
-    return;
-  }
+function descargarPDFN() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
 
-  const matricula = localStorage.getItem('studentMatricula') || 'Estudiante';
-  const btn = event ? (event.currentTarget || event.target) : null;
-  const originalText = btn ? btn.innerHTML : '';
+  // 1. Obtener datos de la sesión o del DOM
+  const matricula = localStorage.getItem('studentMatricula') || '98001';
+  const nombreEstudiante = document.getElementById('nombreEstudiante')?.innerText || 'Adriana';
+  const estrellas = document.getElementById('totalEstrellas')?.innerText || '14';
+  const fecha = new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
 
-  if (btn) {
-    btn.innerHTML = '⏳ Generando PDF...';
-    btn.disabled = true;
-  }
+  // 2. Encabezado del documento
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('DreamLab - Historial Académico', 14, 18);
 
-  // 1. Guardar y reiniciar el scroll actual para evitar desfases en html2canvas
-  const originalScrollX = window.scrollX;
-  const originalScrollY = window.scrollY;
-  window.scrollTo(0, 0);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Reporte de Cotejo de Actividades Completadas', 14, 25);
+  doc.text(`Matrícula: ${matricula}`, 14, 31);
+  doc.text(`Estudiante: ${nombreEstudiante}`, 14, 36);
+  doc.text(`Total Estrellas Ganadas: ${estrellas}`, 14, 41);
+  doc.text(`Fecha de emisión: ${fecha}`, 14, 46);
 
-  // 2. Contenedor temporal alineado estrictamente en (0,0)
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = `
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 750px;
-    background-color: #ffffff;
-    z-index: 99999;
-    margin: 0;
-    padding: 20px;
-    box-sizing: border-box;
-  `;
+  // 3. Extraer filas de la tabla existente en el HTML
+  const filasTabla = [];
+  const filasHTML = document.querySelectorAll('#pdfContentToPrint table tbody tr');
 
-  // 3. Estilos de reinicio para anular desalineaciones o márgenes heredados
-  const style = document.createElement('style');
-  style.innerHTML = `
-    #pdfContentToPrint, #pdfContentToPrint * {
-      box-sizing: border-box !important;
-      margin-left: 0 !important;
-      transform: none !important;
+  filasHTML.forEach(tr => {
+    const celdas = tr.querySelectorAll('td, th');
+    if (celdas.length >= 4) {
+      filasTabla.push([
+        celdas[0].innerText.trim(),
+        celdas[1].innerText.trim(),
+        celdas[2].innerText.trim(),
+        celdas[3].innerText.trim()
+      ]);
     }
-    #pdfContentToPrint {
-      width: 100% !important;
-      max-width: 100% !important;
-      padding: 0 !important;
-    }
-    #pdfContentToPrint table {
-      width: 100% !important;
-      table-layout: auto !important;
-    }
-    #pdfContentToPrint tr,
-    #pdfContentToPrint table,
-    #pdfContentToPrint .pdf-disclaimer,
-    #pdfContentToPrint .pdf-signature-line {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-  `;
-  wrapper.appendChild(style);
+  });
 
-  // 4. Clonar el contenido e insertarlo en el wrapper
-  const clone = originalElement.cloneNode(true);
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
-
-  // 5. Configurar opciones explicitando las coordenadas de origen (x: 0, y: 0)
-  const opt = {
-    margin:       [0.3, 0.3, 0.3, 0.3],
-    filename:     `Historial_DreamLab_${matricula}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { 
-      scale: 2, 
-      useCORS: true, 
-      logging: false,
-      scrollX: 0,
-      scrollY: 0,
-      x: 0,
-      y: 0,
-      windowWidth: 750
+  // 4. Construir tabla nativa
+  doc.autoTable({
+    startY: 52,
+    head: [['Mundo', 'Domo / Unidad', 'Actividad Completada', 'Estado']],
+    body: filasTabla,
+    theme: 'striped',
+    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
+    columnStyles: {
+      0: { cellWidth: 35 },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 70 },
+      3: { cellWidth: 30, halign: 'center' }
     },
-    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-    pagebreak:    { mode: ['css', 'legacy'] }
-  };
-
-  // 6. Exportar y restaurar el estado original del DOM y del scroll
-  try {
-    await html2pdf().set(opt).from(clone).save();
-  } catch (error) {
-    console.error("Error al generar el PDF:", error);
-    alert("Ocurrió un error al generar el PDF.");
-  } finally {
-    document.body.removeChild(wrapper);
-    window.scrollTo(originalScrollX, originalScrollY);
-    if (btn) {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
+    margin: { top: 15, bottom: 20, left: 14, right: 14 },
+    didDrawPage: function (data) {
+      // Pie de página con numeración
+      const str = `Página ${doc.internal.getNumberOfPages()}`;
+      doc.setFontSize(8);
+      doc.text(str, 14, doc.internal.pageSize.height - 10);
     }
+  });
+
+  // 5. Declaración de Ética y Firma al final de la tabla
+  let finalY = doc.lastAutoTable.finalY + 10;
+  
+  // Si no hay suficiente espacio en la página actual, crea una nueva
+  if (finalY + 40 > doc.internal.pageSize.height) {
+    doc.addPage();
+    finalY = 20;
   }
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DECLARACIÓN DE INTEGRIDAD Y ÉTICA ACADÉMICA:', 14, finalY);
+
+  doc.setFont('helvetica', 'normal');
+  const disclaimer = "El estudiante declara estar consciente de que este documento será cotejado con las actividades " +
+    "registradas durante el semestre como completadas en sus respectivos apartados (Moodle, GradingPal y otros) y " +
+    "que si se encuentran irregularidades, renuncia a todas sus estrellas de crédito obtenidas.";
+
+  // Ajustar texto largo en párrafos
+  const textLines = doc.splitTextToSize(disclaimer, 180);
+  doc.text(textLines, 14, finalY + 5);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Firma / Conformidad: ${nombreEstudiante}`, 14, finalY + 20);
+
+  // 6. Descargar el archivo
+  doc.save(`Historial_DreamLab_${matricula}.pdf`);
 }
   // ============================================================
   // ZONA DOCENTE
