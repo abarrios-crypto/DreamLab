@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DreamLab · Aventura en Dream Land</title>
+<title>DreamLab · Aventura en Dream Lab</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
 
 <style>
   /* ============================================================
-     1. VARIABLES DE DISEÑO — Paleta "Dream Land"
+     1. VARIABLES DE DISEÑO — Paleta "Dream Lab"
      ============================================================ */
   :root{
     --sky-top:#cdf2ff;
@@ -574,7 +574,7 @@
   <!-- PANTALLA DE CARGA INICIAL -->
   <div id="loaderScreen">
     <div class="loader-spinner">🌟</div>
-    <h2>Cargando universo desde Google Sheets...</h2>
+    <h2>Cargando universo Dream Lab...</h2>
   </div>
 
   <div class="sky-decor" aria-hidden="true">
@@ -593,9 +593,9 @@
       <div class="hud-title">
         <span class="game-name">DreamLab</span>
         <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-accent); margin-top: 2px;">
-          🧑‍🚀 <span id="playerNameDisplay">Astronauta</span>
+          🥼 <span id="playerNameDisplay">Astronauta</span>
         </div>
-        <span class="location-badge" id="hudLocation">Mapa de Dream Land</span>
+        <span class="location-badge" id="hudLocation">Mapa de Dream Lab</span>
       </div>
     </div>
     <div class="hud-right">
@@ -635,7 +635,7 @@
   <section class="scene" id="galaxyScene">
     <div class="galaxy-header">
       <div class="title-banner">
-        <h1>Mapa de Dream Land</h1>
+        <h1>Mapa de Dream Lab</h1>
         <p>Elige el mundo al que quieres viajar</p>
       </div>
     </div>
@@ -872,7 +872,7 @@
       localStorage.removeItem('studentName');
       localStorage.removeItem('dreamlab_apodo_rpg');
 
-      const matricula = prompt("🧑‍🚀 ¡Bienvenido a DreamLab!\nPor favor, ingresa tu matrícula:");
+      const matricula = prompt("🥼 ¡Bienvenido a DreamLab!\nPor favor, ingresa tu matrícula:");
       if (!matricula || matricula.trim() === "") {
         procesandoLogin = false; 
         return; 
@@ -936,7 +936,7 @@
            updateWorldProgressUI();
            const msgWelcome = document.getElementById('rpgWelcomeMessage');
            if (msgWelcome) {
-             msgWelcome.textContent = `¡Qué alegría verte de nuevo, ${nombreFinal}! Los reinos de Dream Land aguardan por ti.`;
+             msgWelcome.textContent = `¡Qué alegría verte de nuevo, ${nombreFinal}! Los reinos de Dream Lab aguardan por ti.`;
            }
            const modalGuide = document.getElementById('rpgGuideModal');
            if (modalGuide) {
@@ -1847,7 +1847,7 @@ doc.text(nombreEstudiante, xNombreCentrado, yFirma + 6);
   function travelToGalaxy(){
     transitionScenes('orbitScene', 'galaxyScene', () => {
       const hudLoc = document.getElementById('hudLocation');
-      if (hudLoc) hudLoc.textContent = 'Mapa de Dream Land';
+      if (hudLoc) hudLoc.textContent = 'Mapa de Dream Lab';
       
       const stampPill = document.getElementById('stampPill');
       if (stampPill) stampPill.style.display = 'none';
