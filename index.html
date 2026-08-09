@@ -1076,7 +1076,7 @@
     }
   }
 
-  async function descargarPDF() {
+async function descargarPDF() {
   const originalElement = document.getElementById('pdfContentToPrint');
   if (!originalElement) {
     alert("No se encontró el contenido a exportar.");
@@ -1092,40 +1092,47 @@
     btn.disabled = true;
   }
 
-  // 1. Crear un contenedor temporal fuera de pantalla con ANCHO FIJO
+  // 1. Contenedor invisible en (0,0) para evitar que html2canvas calcule coordenadas negativas
   const wrapper = document.createElement('div');
-  wrapper.style.position = 'absolute';
-  wrapper.style.left = '-9999px';
+  wrapper.style.position = 'fixed';
   wrapper.style.top = '0';
-  wrapper.style.width = '750px'; // Ancho exacto para evitar recortes
+  wrapper.style.left = '0';
+  wrapper.style.width = '750px';
+  wrapper.style.zIndex = '-9999';
+  wrapper.style.opacity = '0';
+  wrapper.style.pointerEvents = 'none';
   wrapper.style.backgroundColor = '#ffffff';
 
-const style = document.createElement('style');
+  const style = document.createElement('style');
   style.innerHTML = `
+    #pdfContentToPrint {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
     #pdfContentToPrint tr,
     #pdfContentToPrint table,
-    #pdfContentToPrint .signature-section,
-    #pdfContentToPrint [style*="border"],
-    #pdfContentToPrint div {
+    #pdfContentToPrint .pdf-disclaimer,
+    #pdfContentToPrint .pdf-signature-line {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
     #pdfContentToPrint * {
       box-sizing: border-box !important;
-      word-wrap: break-word;
+      word-wrap: break-word !important;
     }
   `;
   wrapper.appendChild(style);
-  
-  // 2. Clonar el contenido dentro del contenedor estático
+
+  // 2. Clonar el contenido e insertarlo en el contenedor auxiliar
   const clone = originalElement.cloneNode(true);
   clone.style.width = '100%';
   clone.style.margin = '0';
-  clone.style.padding = '20px';
+  clone.style.padding = '25px';
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
-  // 3. Opciones de exportación
+  // 3. Opciones de renderizado a tamaño Carta exacto
   const opt = {
     margin:       [0.3, 0.3, 0.3, 0.3],
     filename:     `Historial_DreamLab_${matricula}.pdf`,
@@ -1136,20 +1143,19 @@ const style = document.createElement('style');
       logging: false,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: 750 // Fuerza al renderizador a usar la vista fija
+      windowWidth: 750
     },
     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
     pagebreak:    { mode: ['css', 'legacy'] }
   };
 
-  // 4. Generar y limpiar
+  // 4. Generar el PDF y limpiar el DOM
   try {
     await html2pdf().set(opt).from(clone).save();
   } catch (error) {
     console.error("Error al generar el PDF:", error);
     alert("Ocurrió un error al generar el PDF.");
   } finally {
-    // Eliminar el clon temporal del DOM
     document.body.removeChild(wrapper);
     if (btn) {
       btn.innerHTML = originalText;
