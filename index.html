@@ -312,8 +312,11 @@
   .btn-mission:active{transform:translateY(3px);box-shadow:0 1px 0 var(--star-orange);}
   .btn-mission.done{background:var(--meadow-green-deep);box-shadow:0 4px 0 #2f7d43;color:#fff;}
 
-  /* MODALES */
-  .modal-overlay{position:fixed;inset:0;background:rgba(74,59,99,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  /* MODALES Y CAPAS SUPERPUESTAS */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;z-index:9999;padding:20px;
+  }
   .modal-overlay.open{display:flex;}
   .reward-card{
     background:#fff;border-radius:28px;padding:32px 26px 26px;max-width:320px;width:100%;text-align:center;
@@ -468,11 +471,6 @@
   .main-footer strong { font-weight: 700; color: #384e3d; }
 
   /* DIÁLOGOS Y MODALES RPG */
-  .modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
-    display: flex; justify-content: center; align-items: center; z-index: 9999;
-  }
   .rpg-dialog-card {
     background: #1e1b4b; border: 3px solid #6366f1; border-radius: 16px;
     padding: 24px; max-width: 450px; width: 90%; display: flex; align-items: center;
@@ -513,19 +511,17 @@
 
   <div id="irisWipe" aria-hidden="true"><span class="iris-star">✦</span></div>
 
-  <!-- HUD (Oculto en selección de rol, visible al entrar) -->
+  <!-- HUD -->
   <header id="mainHeader">
    <div class="hud-left">
       <div class="mascot-badge" aria-hidden="true"></div>
       <div class="hud-title">
         <span class="game-name">DreamLab</span>
-        <!-- Aquí inyectaremos el nombre del jugador -->
         <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-accent); margin-top: 2px;">
           🧑‍🚀 <span id="playerNameDisplay">Astronauta</span>
         </div>
         <span class="location-badge" id="hudLocation">Mapa de Dream Land</span>
       </div>
-    </div>
     </div>
     <div class="hud-right">
       <button class="teacher-btn" onclick="requestTeacherAccess()">🔒 Zona Docente</button>
@@ -611,23 +607,19 @@
       <div class="reward-burst">⭐</div>
       <h3>¡Misión completada!</h3>
       <p id="rewardMissionName">Has avanzado en tu aventura.</p>
-      <span class="reward-points" id="rewardPoints">+10 puntos</span>
+      <span class="reward-points" id="rewardPoints">+1 Estrella</span>
       <button class="btn-continue" id="rewardContinueBtn">¡Genial!</button>
     </div>
   </div>
 
-  <!-- MODAL LIBRETA DE SELLOS (Busca tu equivalente en el código) -->
+  <!-- MODAL LIBRETA DE SELLOS -->
   <div class="modal-overlay" id="stampBookModal">
-    <!-- Añadimos min-height y flexbox para que no se aplaste -->
     <div class="stamp-card" style="max-width: 520px; min-height: 260px; display: flex; flex-direction: column;">
-      <button class="modal-close-btn" onclick="closeAllModals()" aria-label="Cerrar">✕</button>
+      <button class="modal-close-btn" onclick="closeStampSheet()" aria-label="Cerrar">✕</button>
       
-      <h3 style="margin-bottom: 15px;">⭐ Libreta de sellos</h3>
+      <h3 id="stampModalTitle" style="margin-bottom: 15px;">⭐ Libreta de sellos</h3>
       
-      <!-- Contenedor flexible para los sellos o el mensaje de vacío -->
-      <div id="stampBookContent" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;">
-        <!-- El contenido se inyecta por JS -->
-      </div>
+      <div id="stampBookContent" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;"></div>
     </div>
   </div>
 
@@ -659,18 +651,15 @@
 
   <!-- MODAL PANEL DE CLASE PRESENCIAL -->
   <div class="modal-overlay" id="teacherPanelModal">
-    <!-- Se añadieron estilos para garantizar altura mínima y flexbox interno -->
     <div class="stamp-card" style="max-width: 520px; min-height: 260px; display: flex; flex-direction: column;">
       <button class="modal-close-btn" onclick="closeTeacherPanel()" aria-label="Cerrar">✕</button>
       <h3 id="teacherPanelWorldTitle" style="margin-bottom: 15px;">📍 Actividades de Clase Presencial</h3>
-      <div id="teacherActivitiesContent" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;">
-        <!-- El contenido se inyecta por JS de forma segura -->
-      </div>
+      <div id="teacherActivitiesContent" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center;"></div>
     </div>
   </div>
   
   <!-- MODAL 1: REGISTRO DE APODO RPG -->
-  <div id="modalRegistroNombre" class="modal-overlay" style="display: none;">
+  <div id="modalRegistroNombre" class="modal-overlay">
     <div class="rpg-dialog-card">
       <div class="rpg-avatar">🧙‍♂️</div>
       <div class="rpg-dialog-content">
@@ -683,7 +672,7 @@
   </div>
 
   <!-- MODAL 2: SALUDO RPG -->
-  <div id="rpgGuideModal" class="modal-overlay" style="display: none;">
+  <div id="rpgGuideModal" class="modal-overlay">
     <div class="rpg-dialog-card">
       <div class="rpg-avatar">🧙‍♂️</div>
       <div class="rpg-dialog-content">
@@ -719,20 +708,17 @@
   };
 
   let islandPoints = [];
-
-// ============================================================
-  // SELECCIÓN DE ROL
-  // ============================================================
   let procesandoLogin = false; 
   let matriculaActual = ""; 
 
+  // ============================================================
+  // SELECCIÓN DE ROL
+  // ============================================================
   async function seleccionarRol(rol) {
     if (rol === 'estudiante') {
-      
       if (procesandoLogin) return; 
       procesandoLogin = true;
 
-      // 1. LIMPIEZA DE MEMORIA FANTASMA
       localStorage.removeItem('studentName');
       localStorage.removeItem('dreamlab_apodo_rpg');
 
@@ -743,8 +729,8 @@
       }
       
       matriculaActual = matricula.trim();
+      localStorage.setItem('studentMatricula', matriculaActual);
 
-      // ¡NUEVO!: MOSTRAMOS LA PANTALLA DE CARGA MIENTRAS GOOGLE RESPONDE
       const loader = document.getElementById('loaderScreen');
       if (loader) {
         const loadingText = loader.querySelector('h2');
@@ -760,17 +746,14 @@
         });
         const data = await response.json();
 
-        // ¡NUEVO!: OCULTAMOS LA PANTALLA DE CARGA CUANDO GOOGLE TERMINA
         if (loader) loader.style.display = 'none';
 
-        // Cambiamos la pantalla visualmente al mapa
         document.getElementById('roleSelectScene').classList.remove('active-scene');
         document.getElementById('roleSelectScene').style.display = 'none';
         document.getElementById('mainHeader').style.display = 'flex';
         document.getElementById('galaxyScene').classList.add('active-scene');
         document.getElementById('galaxyScene').style.display = 'block';
 
-        // 2. LÓGICA DE INMERSIÓN RPG (EL MAGO)
         if (data.status === 'requiere_nombre' || (data.status === 'success' && !data.usuario.nombre)) {
            const modalReg = document.getElementById('modalRegistroNombre');
            if (modalReg) {
@@ -784,10 +767,8 @@
            const nombreDisplay = document.getElementById('playerNameDisplay');
            if (nombreDisplay) nombreDisplay.textContent = nombreFinal;
 
-          state.missionsDone = {};
+           state.missionsDone = {};
           
-           // 1. Inyectar el historial de misiones que viene de Google Sheets
-           // Compatible con arreglo de misiones o el objeto userProgress original
            if (data.misiones && Array.isArray(data.misiones)) {
                data.misiones.forEach(mision => {
                    if (mision) state.missionsDone[mision.trim()] = true;
@@ -796,15 +777,11 @@
                state.missionsDone = { ...state.missionsDone, ...data.userProgress };
            }
 
-           // 2. Contar las misiones completadas y actualizar los puntos (1 Estrella por misión)
            state.points = Object.keys(state.missionsDone).length; 
            
            const ptsVal = document.getElementById('pointsValue');
            if (ptsVal) ptsVal.textContent = state.points; 
-          
-          guardarprogresomision(missionKey);
-          
-           // 3. Forzar a la interfaz a refrescarse con los nuevos datos
+
            updateWorldProgressUI();
            const msgWelcome = document.getElementById('rpgWelcomeMessage');
            if (msgWelcome) {
@@ -819,7 +796,7 @@
 
       } catch (error) {
         console.error("Error de conexión:", error);
-        if (loader) loader.style.display = 'none'; // También la ocultamos si hay error
+        if (loader) loader.style.display = 'none';
         alert("Hubo un problema conectando con la base de datos.");
       } finally {
         procesandoLogin = false; 
@@ -837,35 +814,32 @@
   }
 
   function volverASeleccionRol() {
-  // 1. LIMPIAR EL ESTADO GLOBAL DE JUEGO (Solución al bug de misiones cargadas)
-  state.points = 0;
-  state.currentWorldKey = null;
-  state.currentIslandIndex = 0;
-  state.visited = {};
-  state.missionsDone = {};
-  state.pendingLink = null;
-  matriculaActual = "";
+    state.points = 0;
+    state.currentWorldKey = null;
+    state.currentIslandIndex = 0;
+    state.visited = {};
+    state.missionsDone = {};
+    state.pendingLink = null;
+    matriculaActual = "";
 
-  // 2. LIMPIAR EL ALMACENAMIENTO DEL NAVEGADOR
-  localStorage.removeItem('studentName');
-  localStorage.removeItem('dreamlab_apodo_rpg');
+    localStorage.removeItem('studentName');
+    localStorage.removeItem('studentMatricula');
+    localStorage.removeItem('dreamlab_apodo_rpg');
 
-  // 3. RESETEAR LOS CONTADORES VISUALES (Puntos y Sellos)
-  const ptsVal = document.getElementById('pointsValue');
-  if (ptsVal) ptsVal.textContent = "0";
-  
-  const stampFrac = document.getElementById('stampFraction');
-  if (stampFrac) stampFrac.textContent = "0/0";
+    const ptsVal = document.getElementById('pointsValue');
+    if (ptsVal) ptsVal.textContent = "0";
+    
+    const stampFrac = document.getElementById('stampFraction');
+    if (stampFrac) stampFrac.textContent = "0/0";
 
-  // 4. OCULTAR PANTALLAS (Tu lógica original)
-  document.querySelectorAll('.scene').forEach(sc => {
-    sc.classList.remove('active-scene');
-    sc.style.display = 'none';
-  });
-  document.getElementById('mainHeader').style.display = 'none';
-  document.getElementById('roleSelectScene').classList.add('active-scene');
-  document.getElementById('roleSelectScene').style.display = 'block';
-}
+    document.querySelectorAll('.scene').forEach(sc => {
+      sc.classList.remove('active-scene');
+      sc.style.display = 'none';
+    });
+    document.getElementById('mainHeader').style.display = 'none';
+    document.getElementById('roleSelectScene').classList.add('active-scene');
+    document.getElementById('roleSelectScene').style.display = 'block';
+  }
 
   // ============================================================
   // ZONA DOCENTE
@@ -873,7 +847,7 @@
   const TEACHER_PIN = "1234"; 
   let isTeacherAuthenticated = false;
 
-function requestTeacherAccess() {
+  function requestTeacherAccess() {
     closeAllModals();
     if (isTeacherAuthenticated) {
       openTeacherPanel();
@@ -1084,46 +1058,42 @@ function requestTeacherAccess() {
     }
   }
 
-async function guardarProgresoMision(missionKey) {
-  const matriculaActual = localStorage.getItem('studentMatricula') || localStorage.getItem('studentId') || localStorage.getItem('matricula');
-  const nombreEstudiante = localStorage.getItem('studentName') || localStorage.getItem('nombre') || 'Estudiante';
+  async function guardarProgresoMision(missionKey) {
+    const matriculaDoc = localStorage.getItem('studentMatricula') || matriculaActual;
+    const nombreEstudiante = localStorage.getItem('studentName') || 'Estudiante';
 
-  if (!matriculaActual) {
-    console.warn('No se encontró la matrícula en localStorage.');
-    return;
-  }
-
-  // ⚠️ REEMPLAZA ESTA URL CON LA DE TU GOOGLE APPS SCRIPT
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO8vldG4js80AHoi5P37TGZ7dPDT2r-hNNZKHIl2cJujlFyQ18FmHzutfHRXNv-MO4/exec';
-
-  const payload = {
-    action: 'saveProgress',
-    usuario_id: matriculaActual,
-    nickname: nombreEstudiante,
-    mission_key: missionKey
-  };
-
-  try {
-    const response = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    const result = await response.json();
-    
-    if (result.status === 'success' || result.success) {
-      console.log(`✅ Misión '${missionKey}' guardada (${matriculaActual}).`);
-    } else {
-      console.warn('⚠️ La API respondió pero no confirmó el guardado:', result);
+    if (!matriculaDoc) {
+      console.warn('No se encontró la matrícula para guardar el progreso.');
+      return;
     }
-  } catch (error) {
-    console.error('❌ Error al guardar el progreso:', error);
+
+    const payload = {
+      action: 'saveProgress',
+      usuario_id: matriculaDoc,
+      nickname: nombreEstudiante,
+      mission_key: missionKey
+    };
+
+    try {
+      const response = await fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      if (result.status === 'success' || result.success) {
+        console.log(`✅ Misión '${missionKey}' guardada con éxito (${matriculaDoc}).`);
+      } else {
+        console.warn('⚠️ Respuesta de guardado no confirmada:', result);
+      }
+    } catch (error) {
+      console.error('❌ Error al guardar el progreso:', error);
+    }
   }
-}
+
   // ============================================================
   // CARGA DE DATOS DESDE GOOGLE SHEETS
   // ============================================================
@@ -1134,7 +1104,6 @@ async function guardarProgresoMision(missionKey) {
       
       const jsonData = await response.json();
       
-      // Le decimos al código que busque específicamente el "cajón" de los mundos
       if (jsonData.worlds) {
         worldsData = jsonData.worlds;
       } else if (jsonData.data) {
@@ -1369,81 +1338,70 @@ async function guardarProgresoMision(missionKey) {
     });
   }
 
-function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement){
-    // 1. SI LA MISIÓN YA ESTÁ COMPLETADA (ya sea desde el inicio o recién hecha)
+  function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement){
     if (alreadyDone || state.missionsDone[missionKey]) {
-        // Abrimos el recurso de nuevo para que puedan volver a verlo
-        if (link && link !== '#') {
-            window.open(link, '_blank');
-        }
-        // Detenemos la ejecución aquí para que no sume más estrellas ni pregunte nada
-        return; 
+      if (link && link !== '#') {
+        window.open(link, '_blank');
+      }
+      return; 
     }
 
-    // 2. VERIFICAMOS EN QUÉ PASO ESTAMOS USANDO UN DATO OCULTO EN EL BOTÓN
     const step = btnElement.getAttribute('data-step') || '1';
 
     if (step === '1') {
-        // --- PASO 1: ABRIR RECURSO Y PREPARAR VALIDACIÓN ---
-        if (link && link !== '#') {
-            window.open(link, '_blank');
-        }
-        
-        // Cambiamos el estado y la apariencia del botón
-        btnElement.setAttribute('data-step', '2');
-        btnElement.innerHTML = '🔍 Validar Misión';
-        btnElement.style.backgroundColor = '#ffda4d'; // Amarillo Warp
-        btnElement.style.color = '#7a4c00';
-        btnElement.style.boxShadow = '0 4px 0 #ff9b3d';
+      if (link && link !== '#') {
+        window.open(link, '_blank');
+      }
+      
+      btnElement.setAttribute('data-step', '2');
+      btnElement.innerHTML = '🔍 Validar Misión';
+      btnElement.style.backgroundColor = '#ffda4d';
+      btnElement.style.color = '#7a4c00';
+      btnElement.style.boxShadow = '0 4px 0 #ff9b3d';
         
     } else if (step === '2') {
-        // --- PASO 2: PROMESA DEL BIO-HÉROE Y RECOMPENSA ---
-        const confirmar = confirm(`¿Das tu palabra de honor como futuro Bio-Héroe de que has completado esta misión y estás listo para absorber una nueva Habilidad de Copia?`);
+      const confirmar = confirm(`¿Das tu palabra de honor como futuro Bio-Héroe de que has completado esta misión y estás listo para absorber una nueva Habilidad de Copia?`);
+      
+      if (confirmar) {
+        state.missionsDone[missionKey] = true;
+        state.points += 1; 
+
+        btnElement.classList.add('done');
+        btnElement.innerHTML = '✓ Hecho';
+        btnElement.style.backgroundColor = ''; 
+        btnElement.style.color = '';
+        btnElement.style.boxShadow = '';
         
-        if (confirmar) {
-            // REGISTRAMOS INMEDIATAMENTE QUE ESTÁ HECHA (Evita el spam-click)
-            state.missionsDone[missionKey] = true;
-            
-            // ACTUALIZACIÓN VISUAL Y DE ESTRELLAS DE CRÉDITO
-            state.points += 1; 
+        const card = btnElement.closest('.mission-card');
+        if (card) card.classList.add('mission-done');
 
-            // Pintamos el botón de verde de éxito
-            btnElement.classList.add('done');
-            btnElement.innerHTML = '✓ Hecho';
-            btnElement.style.backgroundColor = ''; 
-            btnElement.style.color = '';
-            btnElement.style.boxShadow = '';
-            
-            // Pintamos la tarjeta de fondo verde
-            const card = btnElement.closest('.mission-card');
-            if (card) card.classList.add('mission-done');
+        const ptsVal = document.getElementById('pointsValue');
+        if (ptsVal) ptsVal.textContent = state.points;
 
-            // Actualizamos el contador del HUD
-            const ptsVal = document.getElementById('pointsValue');
-            if (ptsVal) ptsVal.textContent = state.points;
-
-            // ENVIAMOS EL PROGRESO A GOOGLE SHEETS EN SILENCIO
-            saveProgressToSheets(missionKey);
-            updateWorldProgressUI();
-            
-            // Mostramos el modal de recompensa con la nueva narrativa
-            const rName = document.getElementById('rewardMissionName');
-            if (rName) rName.textContent = `¡Habilidad de Copia en progreso!`;
-            const rPts = document.getElementById('rewardPoints');
-            if (rPts) rPts.textContent = '+1 Estrella de Crédito';
-            const rModal = document.getElementById('rewardModal');
-            if (rModal) rModal.classList.add('open');
-            
-            console.log("💖✅ Progreso del Bio-Aprendiz sincronizado en DreamLab");
+        guardarProgresoMision(missionKey);
+        updateWorldProgressUI();
+        
+        const rName = document.getElementById('rewardMissionName');
+        if (rName) rName.textContent = `¡Habilidad de Copia en progreso!`;
+        const rPts = document.getElementById('rewardPoints');
+        if (rPts) rPts.textContent = '+1 Estrella';
+        const rModal = document.getElementById('rewardModal');
+        if (rModal) {
+          rModal.style.display = 'flex';
+          rModal.classList.add('open');
         }
+      }
     }
-}
+  }
 
   const rewardBtn = document.getElementById('rewardContinueBtn');
   if (rewardBtn) {
     rewardBtn.addEventListener('click', () => {
       const rModal = document.getElementById('rewardModal');
-      if (rModal) rModal.classList.remove('open');
+      if (rModal) {
+        rModal.classList.remove('open');
+        rModal.style.display = 'none';
+      }
       if (state.pendingLink && state.pendingLink !== '#'){
         window.open(state.pendingLink, '_blank');
       }
@@ -1462,7 +1420,7 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
     const world = worldsData[worldKey];
     
     const stampTitle = document.getElementById('stampModalTitle');
-    if (stampTitle) stampTitle.textContent = `Libreta de sellos · ${world.name || world.title || 'Mundo'}`;
+    if (stampTitle) stampTitle.textContent = `⭐ Libreta de sellos · ${world.name || world.title || 'Mundo'}`;
 
     const container = document.getElementById('stampBookContent');
     if (!container) return;
@@ -1498,8 +1456,11 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
   }
 
   function closeStampSheet(){
-    const stampModal = document.getElementById('stampModal');
-    if (stampModal) stampModal.classList.remove('open');
+    const stampModal = document.getElementById('stampBookModal');
+    if (stampModal) {
+      stampModal.classList.remove('open');
+      stampModal.style.display = 'none';
+    }
   }
 
   function transitionScenes(fromId, toId, callback){
@@ -1639,7 +1600,7 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
     }
   }
 
-// ============================================================
+  // ============================================================
   // LÓGICA DE MODALES RPG Y APODO DE JUGADOR
   // ============================================================
   async function guardarApodoYEntrar() {
@@ -1651,14 +1612,12 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
       return;
     }
 
-    // Cambiamos el texto del botón mientras guarda
     const btn = document.querySelector('#modalRegistroNombre .rpg-btn');
     const textoOriginal = btn.innerHTML;
     btn.innerHTML = "Guardando en los astros... ⏳";
     btn.disabled = true;
 
     try {
-      // Guardamos directamente en tu Google Sheets
       const resRegistro = await fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1666,16 +1625,13 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
       });
       const dataReg = await resRegistro.json();
       
-      const nombreFinal = dataReg.usuario.nombre || apodo;
+      const nombreFinal = dataReg.usuario ? dataReg.usuario.nombre : apodo;
       
-      // Guardamos localmente para referencia futura
       localStorage.setItem('studentName', nombreFinal);
       
-      // Actualizamos el nombre en el HUD
       const nombreDisplay = document.getElementById('playerNameDisplay');
       if (nombreDisplay) nombreDisplay.textContent = nombreFinal;
 
-      // Cerramos el modal
       const modalReg = document.getElementById('modalRegistroNombre');
       if (modalReg) {
         modalReg.classList.remove('open');
@@ -1683,7 +1639,7 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
       }
     } catch (error) {
        console.error("Error al guardar nombre:", error);
-       alert("Los astros no están alineados. Hubo un error al guardar tu nombre.");
+       alert("Hubo un error al guardar tu nombre.");
     } finally {
        btn.innerHTML = textoOriginal;
        btn.disabled = false;
@@ -1698,11 +1654,6 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
     }
   }
 
-  // INICIAR CONEXIÓN
-  closeAllModals();
-  loadDataFromSheets();
-  
-  // Función maestra para cerrar cualquier modal que esté abierto
   function closeAllModals() {
     const modals = document.querySelectorAll('.modal-overlay');
     modals.forEach(modal => {
@@ -1711,6 +1662,9 @@ function completeMission(missionKey, missionTitle, link, alreadyDone, btnElement
     });
   }
 
+  // INICIAR CONEXIÓN
+  closeAllModals();
+  loadDataFromSheets();
 </script>
 
 <footer class="main-footer">
