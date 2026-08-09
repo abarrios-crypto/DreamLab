@@ -1092,23 +1092,41 @@ async function descargarPDF() {
     btn.disabled = true;
   }
 
-  // 1. Contenedor invisible en (0,0) para evitar que html2canvas calcule coordenadas negativas
-  const wrapper = document.createElement('div');
-  wrapper.style.position = 'fixed';
-  wrapper.style.top = '0';
-  wrapper.style.left = '0';
-  wrapper.style.width = '750px';
-  wrapper.style.zIndex = '-9999';
-  wrapper.style.opacity = '0';
-  wrapper.style.pointerEvents = 'none';
-  wrapper.style.backgroundColor = '#ffffff';
+  // 1. Guardar y reiniciar el scroll actual para evitar desfases en html2canvas
+  const originalScrollX = window.scrollX;
+  const originalScrollY = window.scrollY;
+  window.scrollTo(0, 0);
 
+  // 2. Contenedor temporal alineado estrictamente en (0,0)
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 750px;
+    background-color: #ffffff;
+    z-index: 99999;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+  `;
+
+  // 3. Estilos de reinicio para anular desalineaciones o márgenes heredados
   const style = document.createElement('style');
   style.innerHTML = `
+    #pdfContentToPrint, #pdfContentToPrint * {
+      box-sizing: border-box !important;
+      margin-left: 0 !important;
+      transform: none !important;
+    }
     #pdfContentToPrint {
       width: 100% !important;
       max-width: 100% !important;
-      box-sizing: border-box !important;
+      padding: 0 !important;
+    }
+    #pdfContentToPrint table {
+      width: 100% !important;
+      table-layout: auto !important;
     }
     #pdfContentToPrint tr,
     #pdfContentToPrint table,
@@ -1117,22 +1135,15 @@ async function descargarPDF() {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
-    #pdfContentToPrint * {
-      box-sizing: border-box !important;
-      word-wrap: break-word !important;
-    }
   `;
   wrapper.appendChild(style);
 
-  // 2. Clonar el contenido e insertarlo en el contenedor auxiliar
+  // 4. Clonar el contenido e insertarlo en el wrapper
   const clone = originalElement.cloneNode(true);
-  clone.style.width = '100%';
-  clone.style.margin = '0';
-  clone.style.padding = '25px';
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
-  // 3. Opciones de renderizado a tamaño Carta exacto
+  // 5. Configurar opciones explicitando las coordenadas de origen (x: 0, y: 0)
   const opt = {
     margin:       [0.3, 0.3, 0.3, 0.3],
     filename:     `Historial_DreamLab_${matricula}.pdf`,
@@ -1143,13 +1154,15 @@ async function descargarPDF() {
       logging: false,
       scrollX: 0,
       scrollY: 0,
+      x: 0,
+      y: 0,
       windowWidth: 750
     },
     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
     pagebreak:    { mode: ['css', 'legacy'] }
   };
 
-  // 4. Generar el PDF y limpiar el DOM
+  // 6. Exportar y restaurar el estado original del DOM y del scroll
   try {
     await html2pdf().set(opt).from(clone).save();
   } catch (error) {
@@ -1157,13 +1170,13 @@ async function descargarPDF() {
     alert("Ocurrió un error al generar el PDF.");
   } finally {
     document.body.removeChild(wrapper);
+    window.scrollTo(originalScrollX, originalScrollY);
     if (btn) {
       btn.innerHTML = originalText;
       btn.disabled = false;
     }
   }
 }
-
   // ============================================================
   // ZONA DOCENTE
   // ============================================================
