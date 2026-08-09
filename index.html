@@ -1076,17 +1076,17 @@
     }
   }
 
-function descargarPDFN() {
+function descargarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
 
-  // 1. Obtener datos de la sesión o del DOM
-  const matricula = localStorage.getItem('studentMatricula') || '98001';
-  const nombreEstudiante = document.getElementById('nombreEstudiante')?.innerText || 'Adriana';
-  const estrellas = document.getElementById('totalEstrellas')?.innerText || '14';
-  const fecha = new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
+  // 1. Obtención de datos usando los IDs reales de la vista previa HTML
+  const matricula = document.getElementById('pdfMatriculaVal')?.innerText || localStorage.getItem('studentMatricula') || 'N/A';
+  const nombreEstudiante = document.getElementById('pdfNombreVal')?.innerText || 'Estudiante';
+  const estrellas = document.getElementById('pdfEstrellasVal')?.innerText || '0 ⭐';
+  const fecha = document.getElementById('pdfFechaGeneracion')?.innerText || new Date().toLocaleDateString('es-MX');
 
-  // 2. Encabezado del documento
+  // 2. Encabezado del documento PDF
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.text('DreamLab - Historial Académico', 14, 18);
@@ -1099,12 +1099,12 @@ function descargarPDFN() {
   doc.text(`Total Estrellas Ganadas: ${estrellas}`, 14, 41);
   doc.text(`Fecha de emisión: ${fecha}`, 14, 46);
 
-  // 3. Extraer filas de la tabla existente en el HTML
+  // 3. Extraer filas de la tabla de actividades completadas
   const filasTabla = [];
-  const filasHTML = document.querySelectorAll('#pdfContentToPrint table tbody tr');
+  const filasHTML = document.querySelectorAll('#pdfActividadesTbody tr');
 
   filasHTML.forEach(tr => {
-    const celdas = tr.querySelectorAll('td, th');
+    const celdas = tr.querySelectorAll('td');
     if (celdas.length >= 4) {
       filasTabla.push([
         celdas[0].innerText.trim(),
@@ -1115,13 +1115,13 @@ function descargarPDFN() {
     }
   });
 
-  // 4. Construir tabla nativa
+  // 4. Construir tabla nativa dentro del archivo PDF
   doc.autoTable({
     startY: 52,
     head: [['Mundo', 'Domo / Unidad', 'Actividad Completada', 'Estado']],
     body: filasTabla,
     theme: 'striped',
-    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+    headStyles: { fillColor: [79, 184, 232], textColor: 255, fontStyle: 'bold' },
     styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
     columnStyles: {
       0: { cellWidth: 35 },
@@ -1131,17 +1131,15 @@ function descargarPDFN() {
     },
     margin: { top: 15, bottom: 20, left: 14, right: 14 },
     didDrawPage: function (data) {
-      // Pie de página con numeración
       const str = `Página ${doc.internal.getNumberOfPages()}`;
       doc.setFontSize(8);
       doc.text(str, 14, doc.internal.pageSize.height - 10);
     }
   });
 
-  // 5. Declaración de Ética y Firma al final de la tabla
-  let finalY = doc.lastAutoTable.finalY + 10;
+  // 5. Declaración de Integridad Académica y Línea de Firma
+  let finalY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 52) + 10;
   
-  // Si no hay suficiente espacio en la página actual, crea una nueva
   if (finalY + 40 > doc.internal.pageSize.height) {
     doc.addPage();
     finalY = 20;
@@ -1156,14 +1154,13 @@ function descargarPDFN() {
     "registradas durante el semestre como completadas en sus respectivos apartados (Moodle, GradingPal y otros) y " +
     "que si se encuentran irregularidades, renuncia a todas sus estrellas de crédito obtenidas.";
 
-  // Ajustar texto largo en párrafos
   const textLines = doc.splitTextToSize(disclaimer, 180);
   doc.text(textLines, 14, finalY + 5);
 
   doc.setFont('helvetica', 'bold');
   doc.text(`Firma / Conformidad: ${nombreEstudiante}`, 14, finalY + 20);
 
-  // 6. Descargar el archivo
+  // 6. Descarga del archivo PDF
   doc.save(`Historial_DreamLab_${matricula}.pdf`);
 }
   // ============================================================
